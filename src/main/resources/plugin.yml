@@ -1,0 +1,5 @@
+main: me.bscal.mcbody.MCBody
+name: MCbody
+version: 0.0.1
+depend: [SpigotLib, RaycastAPI]
+api-version: 1.16

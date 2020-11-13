@@ -1,0 +1,15 @@
+# Enable debug mode
+DebugModeEnabled: true
+
+# Enable individual body part health pools for Players
+PlayerPartsEnabled: false
+
+# Enable Entity Damage Modifiers
+EntityDamageEnabled: true
+
+MySQLEnabled: false
+database:
+  host: "127.0.0.1"
+  database: "minecraft"
+  user: "user"
+  password: "password"
