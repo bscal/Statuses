@@ -4,6 +4,11 @@ import java.util.*;
 
 import org.bukkit.entity.Player;
 
+/***
+ * 
+ * The base class for all Statuses.
+ *
+ */
 public abstract class StatusBase
 {
 
