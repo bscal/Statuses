@@ -1,6 +1,5 @@
 package me.bscal.statuses.core;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 public class StatusInstance
@@ -21,6 +20,14 @@ public class StatusInstance
 		this.status = status;
 	}
 	
+	public StatusInstance(final Player p, final StatusBase status, final float duration)
+	{
+		this.id = System.currentTimeMillis();
+		this.player = p;
+		this.status = status;
+		this.duration = duration;
+	}
+	
 	@Override
 	public boolean equals(Object other) 
 	{
@@ -32,4 +39,9 @@ public class StatusInstance
 		
 		return id == ((StatusInstance)other).id && status.equals(((StatusInstance)other).status);
 	}
+	
+	public void HandleStack() {
+	
+	}
+	
 }

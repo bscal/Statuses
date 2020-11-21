@@ -12,6 +12,8 @@ import org.bukkit.entity.Player;
 public abstract class StatusBase
 {
 
+	public static final float NO_MAX_DURATION = -1.0f;
+	
 	public final String name;
 	public final int groupID;
 	public final List<StatusEffect> effects = new ArrayList<StatusEffect>();
@@ -23,11 +25,21 @@ public abstract class StatusBase
 	public boolean persistent;
 	public boolean aliveForDecay;
 	public boolean stackable;
+	public boolean multiInstance;
+	public boolean addDuration;
 	
+	public float maxDuration = NO_MAX_DURATION;
+	
+	public float baseDuration;
+
 	public StatusBase(final String name, final Player player, final int groupID)
 	{
 		this.name = name;
 		this.groupID = groupID;
+	}
+	
+	public StatusInstance CreateInstance(Player p) {
+		return new StatusInstance(p, this, baseDuration);
 	}
 	
 	public void OnStart(StatusInstance instance) {

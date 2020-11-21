@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -22,12 +22,8 @@ public class StatusManager implements Listener
 	Map<Player, StatusPlayer> players = new HashMap<Player, StatusPlayer>();
 
 	List<StatusBase> statuses = new ArrayList<StatusBase>();
-	Map<TriggerType, List<StatusBase>> statusesByTrigger = new HashMap<TriggerType, List<StatusBase>>();
-
-	public StatusManager()
-	{
-
-	}
+	Map<StatusTrigger, List<StatusBase>> triggerToStatus = new HashMap<StatusTrigger, List<StatusBase>>();
+	Map<Class<?>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<Class<?>, TreeMap<Integer, List<StatusTrigger>>>();
 
 	public void StartRunnable()
 	{
@@ -49,7 +45,34 @@ public class StatusManager implements Listener
 		}, 0L, 1L);
 	}
 
-	public void Register(StatusBase status, TriggerType trigger)
+	public void RegisterTrigger(Class<?> event, StatusTrigger trigger)
+	{
+		if (event == null || trigger == null)
+			return;
+
+		if (!event.isInstance(Event.class))
+		{
+			LogCraft.LogErr("Trigger failed to register. Error: event is not a Bukkit Event.");
+			return;
+		}
+
+		if (!eventToTrigger.containsKey(event))
+		{
+			var map = eventToTrigger.put(event, new TreeMap<Integer, List<StatusTrigger>>());
+			map.put(trigger.GetWeight(), new ArrayList<StatusTrigger>()).add(trigger);
+		}
+		else
+		{
+			var map = eventToTrigger.get(event);
+			if (!map.containsKey(trigger.GetWeight()))
+				map.put(trigger.GetWeight(), new ArrayList<StatusTrigger>()).add(trigger);
+			else
+				map.get(trigger.GetWeight()).add(trigger);
+		}
+
+	}
+
+	public void Register(StatusBase status, StatusTrigger trigger)
 	{
 		if (status == null || trigger == null)
 			return;
@@ -57,36 +80,36 @@ public class StatusManager implements Listener
 		if (!statuses.contains(status))
 			statuses.add(status);
 
-		if (!statusesByTrigger.containsKey(trigger))
+		if (!triggerToStatus.containsKey(trigger))
 		{
-			statusesByTrigger.put(trigger, new ArrayList<StatusBase>());
+			triggerToStatus.put(trigger, new ArrayList<StatusBase>());
 		}
-		else if (statusesByTrigger.get(trigger).contains(status))
+		else if (triggerToStatus.get(trigger).contains(status))
 		{
 			LogCraft.LogErr("Failed to register. Error: Status already registered.");
 			return;
 		}
 
-		statusesByTrigger.get(trigger).add(status);
+		triggerToStatus.get(trigger).add(status);
 
 		LogCraft.LogErr("[ ok ] Registering status: ", status.name, trigger.toString());
 	}
 
 	public void Trigger(TriggerData data)
 	{
-		if (!statusesByTrigger.containsKey(data.type))
+		if (!triggerToStatus.containsKey(data.type))
 			return;
 	}
 
 	public void TriggerPlayer(TriggerPlayerData data)
 	{
-		if (!statusesByTrigger.containsKey(data.type))
+		if (!triggerToStatus.containsKey(data.type))
 			return;
 
-		for (var status : statusesByTrigger.get(data.type))
+		for (var status : triggerToStatus.get(data.type))
 		{
 			StatusPlayer sPlayer = players.get(data.GetPlayer());
-			var instances = sPlayer.FindInstances(status);
+			sPlayer.AddStatus(status);
 		}
 	}
 
@@ -110,15 +133,17 @@ public class StatusManager implements Listener
 	{
 		PLAYER_DAMAGE,
 		PLAYER_ATTACK;
+
+		StatusTrigger trigger;
 	}
 
 	public class TriggerData
 	{
-		/*** Event used by the Trigger */
+		/** Event used by the Trigger */
 		public final Event event;
-		/*** Trigger's type */
+		/** Trigger's type */
 		public final TriggerType type;
-		/*** The Entity that the status is on. */
+		/** The Entity that the status is on. */
 		public final LivingEntity entity;
 
 		public TriggerData(Event e, TriggerType type, LivingEntity entity)
@@ -136,10 +161,10 @@ public class StatusManager implements Listener
 		{
 			super(e, type, entity);
 		}
-		
+
 		public Player GetPlayer()
 		{
-			return (Player)entity;
+			return (Player) entity;
 		}
 
 	}
