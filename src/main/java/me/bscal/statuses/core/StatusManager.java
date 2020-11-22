@@ -1,5 +1,6 @@
 package me.bscal.statuses.core;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.Statuses;
+import me.bscal.statuses.core.StatusTrigger.PlayerTrigger;
 
 public class StatusManager implements Listener
 {
@@ -95,20 +97,11 @@ public class StatusManager implements Listener
 		LogCraft.LogErr("[ ok ] Registering status: ", status.name, trigger.toString());
 	}
 
-	public void Trigger(TriggerData data)
+	public void TriggerPlayer(PlayerTrigger trigger, Player p)
 	{
-		if (!triggerToStatus.containsKey(data.type))
-			return;
-	}
-
-	public void TriggerPlayer(TriggerPlayerData data)
-	{
-		if (!triggerToStatus.containsKey(data.type))
-			return;
-
-		for (var status : triggerToStatus.get(data.type))
+		for (var status : triggerToStatus.get(trigger))
 		{
-			StatusPlayer sPlayer = players.get(data.GetPlayer());
+			StatusPlayer sPlayer = players.get(p);
 			sPlayer.AddStatus(status);
 		}
 	}
@@ -118,55 +111,28 @@ public class StatusManager implements Listener
 		LivingEntity damager = (LivingEntity) e.getDamager();
 		LivingEntity damagee = (LivingEntity) e.getEntity();
 
-		if (damager instanceof Player)
-		{
-			Trigger(new TriggerData(e, TriggerType.PLAYER_ATTACK, damager));
-		}
+		var map = eventToTrigger.get(e.getClass());
 
-		if (damagee instanceof Player)
-		{
-			Trigger(new TriggerData(e, TriggerType.PLAYER_DAMAGE, damagee));
-		}
-	}
-
-	public static enum TriggerType
+		for (var triggers : map.values())
 	{
-		PLAYER_DAMAGE,
-		PLAYER_ATTACK;
-
-		StatusTrigger trigger;
-	}
-
-	public class TriggerData
-	{
-		/** Event used by the Trigger */
-		public final Event event;
-		/** Trigger's type */
-		public final TriggerType type;
-		/** The Entity that the status is on. */
-		public final LivingEntity entity;
-
-		public TriggerData(Event e, TriggerType type, LivingEntity entity)
-		{
-			this.event = e;
-			this.type = type;
-			this.entity = entity;
+			for (var trig : triggers)
+			{
+				if (trig.IsValid())
+				{
+					PlayerTrigger newTrig;
+					try
+					{
+						newTrig = (PlayerTrigger) trig.getClass().getConstructors()[0].newInstance(e);
+						TriggerPlayer(newTrig, newTrig.GetPlayer());
+					}
+					catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+							| InvocationTargetException | SecurityException e1)
+					{
+						e1.printStackTrace();
+					}	
+				}
+			}
 		}
-	}
-
-	public class TriggerPlayerData extends TriggerData
-	{
-
-		public TriggerPlayerData(Event e, TriggerType type, Player entity)
-		{
-			super(e, type, entity);
-		}
-
-		public Player GetPlayer()
-		{
-			return (Player) entity;
-		}
-
 	}
 
 }

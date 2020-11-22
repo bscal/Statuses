@@ -1,5 +1,6 @@
 package me.bscal.statuses.core;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
@@ -7,6 +8,8 @@ public abstract class StatusTrigger
 {
 
 	public abstract boolean IsValid();
+
+	public abstract Entity GetEntity();
 
 	public int GetWeight()
 	{
@@ -19,12 +22,12 @@ public abstract class StatusTrigger
 
 	public abstract class PlayerTrigger extends StatusTrigger
 	{
-		public final Player player;
 
-		public PlayerTrigger(final Player p)
+		public Player GetPlayer()
 		{
-			player = p;
+			return (Player) GetEntity();
 		}
+
 	}
 
 	public class PlayerDamageDoneTrigger extends PlayerTrigger
@@ -33,35 +36,45 @@ public abstract class StatusTrigger
 		/*** Event used by the Trigger */
 		public final EntityDamageByEntityEvent event;
 
-		public PlayerDamageDoneTrigger(final Player p, final EntityDamageByEntityEvent evt)
+		public PlayerDamageDoneTrigger(final EntityDamageByEntityEvent evt)
 		{
-			super(p);
 			event = evt;
 		}
 
 		@Override
 		public boolean IsValid()
 		{
-			return event.getDamager() == player && event.getDamage() > 0;
+			return event.getDamager() instanceof Player && event.getDamage() > 0;
+		}
+
+		@Override
+		public Entity GetEntity()
+		{
+			return (Player) event.getDamager();
 		}
 	}
-	
+
 	public class PlayerDamageRecievedTrigger extends PlayerTrigger
 	{
 
 		/*** Event used by the Trigger */
 		public final EntityDamageByEntityEvent event;
 
-		public PlayerDamageRecievedTrigger(final Player p, final EntityDamageByEntityEvent evt)
+		public PlayerDamageRecievedTrigger(final EntityDamageByEntityEvent evt)
 		{
-			super(p);
 			event = evt;
 		}
 
 		@Override
 		public boolean IsValid()
 		{
-			return event.getEntity() == player && event.getDamage() > 0;
+			return event.getEntity() instanceof Player && event.getDamage() > 0;
+		}
+
+		@Override
+		public Entity GetEntity()
+		{
+			return event.getEntity();
 		}
 	}
 
