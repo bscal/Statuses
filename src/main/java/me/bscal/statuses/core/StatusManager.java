@@ -1,6 +1,5 @@
 package me.bscal.statuses.core;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,7 +7,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.bukkit.Bukkit;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
@@ -16,7 +14,9 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.Statuses;
-import me.bscal.statuses.core.StatusTrigger.PlayerTrigger;
+import me.bscal.statuses.statuses.StatusBase;
+import me.bscal.statuses.triggers.PlayerTrigger;
+import me.bscal.statuses.triggers.StatusTrigger;
 
 public class StatusManager implements Listener
 {
@@ -47,10 +47,12 @@ public class StatusManager implements Listener
 		}, 0L, 1L);
 	}
 
-	public void RegisterTrigger(Class<?> event, StatusTrigger trigger)
+	public void RegisterTrigger(StatusTrigger trigger)
 	{
-		if (event == null || trigger == null)
+		if (trigger == null)
 			return;
+		
+		Class<? extends Event> event = trigger.eventClass;
 
 		if (!event.isInstance(Event.class))
 		{
@@ -108,28 +110,16 @@ public class StatusManager implements Listener
 
 	public void OnEntityDamageByEntity(EntityDamageByEntityEvent e)
 	{
-		LivingEntity damager = (LivingEntity) e.getDamager();
-		LivingEntity damagee = (LivingEntity) e.getEntity();
-
 		var map = eventToTrigger.get(e.getClass());
 
 		for (var triggers : map.values())
 	{
 			for (var trig : triggers)
 			{
-				if (trig.IsValid())
+				if (trig.IsValid(e))
 				{
-					PlayerTrigger newTrig;
-					try
-					{
-						newTrig = (PlayerTrigger) trig.getClass().getConstructors()[0].newInstance(e);
-						TriggerPlayer(newTrig, newTrig.GetPlayer());
-					}
-					catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-							| InvocationTargetException | SecurityException e1)
-					{
-						e1.printStackTrace();
-					}	
+					if (trig instanceof PlayerTrigger)
+						TriggerPlayer((PlayerTrigger)trig, ((PlayerTrigger)trig).GetPlayer());
 				}
 			}
 		}
