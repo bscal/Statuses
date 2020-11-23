@@ -2,6 +2,8 @@ package me.bscal.statuses.core;
 
 import org.bukkit.entity.Player;
 
+import me.bscal.statuses.statuses.StatusBase;
+
 public class StatusInstance
 {
 	public final long id;

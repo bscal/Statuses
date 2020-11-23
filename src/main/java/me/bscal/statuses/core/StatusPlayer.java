@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.bukkit.entity.Player;
 
+import me.bscal.statuses.statuses.StatusBase;
+
 public class StatusPlayer
 {
 
@@ -116,7 +118,7 @@ public class StatusPlayer
 	{
 		statuses.forEach((status) ->
 		{
-			if (status.hasStarted && !status.shouldRemove && status.status.wait % 20 == 0)
+			if (status.hasStarted && !status.shouldRemove)
 			{
 				status.status.OnTick(tick, status);
 			}
