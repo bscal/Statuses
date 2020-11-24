@@ -27,4 +27,10 @@ public class PlayerDamageRecievedTrigger extends PlayerTrigger
 	{
 		return event.getEntity();
 	}
+
+	@Override
+	public Event GetEvent()
+	{
+		return event;
+	}
 }

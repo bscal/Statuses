@@ -30,4 +30,10 @@ public class PlayerDamageDoneTrigger extends PlayerTrigger
 	{
 		return event.getDamager();
 	}
+	
+	@Override
+	public Event GetEvent()
+	{
+		return event;
+	}
 }

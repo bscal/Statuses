@@ -8,9 +8,11 @@ public abstract class StatusTrigger
 
 	/** Class of the event to use */
 	public final Class<? extends Event> eventClass;
-
+	public final String name;
+	
 	public StatusTrigger(Class<? extends Event> eventClass)
 	{
+		this.name = this.getClass().getName().toUpperCase();
 		this.eventClass = eventClass;
 	}
 
@@ -26,6 +28,15 @@ public abstract class StatusTrigger
 	 */
 	public abstract Entity GetEntity();
 
+	/**
+	 * Returns the Event object that is tied to the Trigger.
+	 */
+	public abstract Event GetEvent();
+	
+	/**
+	 * Returns the weight of the given trigger, lowering the weight will cause the
+	 * trigger to be checked before other triggers
+	 */
 	public int GetWeight()
 	{
 		return 0;
