@@ -1,5 +1,5 @@
-main: me.bscal.mcbody.MCBody
-name: MCbody
+main: me.bscal.statuses.Statuses
+name: Statuses
 version: 0.0.1
-depend: [SpigotLib, RaycastAPI]
+depend: [TheAPI]
 api-version: 1.16
