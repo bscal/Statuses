@@ -129,4 +129,20 @@ public abstract class StatusBase
 		});
 	}
 
+	@Override
+	public boolean equals(Object other)
+	{
+		if (other == null || !(other instanceof StatusBase)) return false;
+		
+		return name.equals(name);
+	}
+	
+	public abstract boolean ShouldApply(StatusTrigger trigger, Player p);
+
+	public void HandleStack(StatusInstance statusInstance)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
 }
