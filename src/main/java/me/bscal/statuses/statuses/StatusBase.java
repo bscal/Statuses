@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.core.StatusInstance;
+import me.bscal.statuses.core.StatusPlayer;
 import me.bscal.statuses.effects.StatusEffect;
 import me.bscal.statuses.triggers.StatusTrigger;
 
@@ -19,7 +20,7 @@ public abstract class StatusBase
 {
 
 	public static final float NO_MAX_DURATION = -1.0f;
-	public static final int TICKS_PER_SECOND = 20;
+	public static final float TICKS_PER_SECOND = 20;
 
 	public final String name;
 	public final StatusGroup group;
@@ -27,6 +28,7 @@ public abstract class StatusBase
 	public final List<StatusTrigger> triggers = new ArrayList<StatusTrigger>();
 
 	public int ticksPerUpdate = 20;
+	public final float baseDuration;
 
 	public boolean removeOnDeath;
 	public boolean persistent;
@@ -37,24 +39,29 @@ public abstract class StatusBase
 
 	public float maxDuration = NO_MAX_DURATION;
 
-	public float baseDuration;
-
-	public StatusBase(final String name, final StatusGroup group)
+	public StatusBase(final String name, final StatusGroup group, final float duration)
 	{
 		this.name = name;
 		this.group = group;
+		this.baseDuration = duration;
 	}
 
-	public StatusBase(final String name, final StatusGroup group, final int ticksPerUpdate)
+	public StatusBase(final String name, final StatusGroup group, final int ticksPerUpdate, final float duration)
 	{
 		this.name = name;
 		this.group = group;
 		this.ticksPerUpdate = ticksPerUpdate;
+		this.baseDuration = duration;
 	}
 
 	public StatusInstance CreateInstance(Player p)
 	{
-		return new StatusInstance(p, this, baseDuration);
+		return CreateInstance(Statuses.Get().GetStatusMgr().GetPlayer(p));
+	}
+
+	public StatusInstance CreateInstance(StatusPlayer sPlayer)
+	{
+		return new StatusInstance(sPlayer, this, baseDuration);
 	}
 
 	/**
@@ -67,8 +74,8 @@ public abstract class StatusBase
 	 */
 	public boolean InternalTick(int tick, StatusInstance instance)
 	{
-		if (instance.hasStarted && ticksPerUpdate % TICKS_PER_SECOND == 0 && instance.player.isOnline()
-				&& !instance.player.isDead())
+		if (instance.hasStarted && tick % ticksPerUpdate == 0 && instance.sPlayer.player.isOnline()
+				&& !instance.sPlayer.player.isDead())
 		{
 
 			if (Statuses.Debug)
@@ -76,7 +83,13 @@ public abstract class StatusBase
 				LogCraft.Log("Status ", instance.status.name, " updating...");
 			}
 
-			instance.duration -= ticksPerUpdate;
+			instance.duration -= TICKS_PER_SECOND / ticksPerUpdate;
+
+			if (instance.shouldRemove)
+			{
+				instance.sPlayer.RemoveStatus(instance);
+				return false;
+			}
 
 			if (instance.duration <= 0)
 			{
@@ -123,26 +136,29 @@ public abstract class StatusBase
 
 	public void OnTick(int tick, StatusInstance instance)
 	{
-		effects.forEach((effect) ->
+		if (InternalTick(tick, instance))
 		{
-			effect.OnTick(tick, instance);
-		});
+			effects.forEach((effect) ->
+			{
+				effect.OnTick(tick, instance);
+			});
+		}
+
 	}
 
 	@Override
 	public boolean equals(Object other)
 	{
-		if (other == null || !(other instanceof StatusBase)) return false;
-		
+		if (other == null || !(other instanceof StatusBase))
+			return false;
+
 		return name.equals(name);
 	}
-	
+
 	public abstract boolean ShouldApply(StatusTrigger trigger, Player p);
 
 	public void HandleStack(StatusInstance statusInstance)
 	{
-		// TODO Auto-generated method stub
-		
 	}
 
 }

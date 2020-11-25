@@ -12,7 +12,7 @@ public class BleedStatus extends StatusBase
 
 	public BleedStatus()
 	{
-		super("Bleed", StatusGroup.BLEEDS);
+		super("Bleed", StatusGroup.BLEEDS, 10);
 		effects.add(new BleedEffect());
 	}
 

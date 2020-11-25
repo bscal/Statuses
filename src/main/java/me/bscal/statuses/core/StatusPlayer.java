@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.bukkit.entity.Player;
 
+import me.bscal.logcraft.LogCraft;
+import me.bscal.statuses.Statuses;
 import me.bscal.statuses.statuses.StatusBase;
 
 public class StatusPlayer
@@ -14,7 +16,7 @@ public class StatusPlayer
 
 	public static final int MAX_STATUSES = 63;
 	public static final int MAX_INSTANCES = 15;
-	
+
 	public Player player;
 	public List<StatusInstance> statuses = new ArrayList<StatusInstance>();
 	public Map<StatusBase, List<StatusInstance>> instanceMap = new HashMap<StatusBase, List<StatusInstance>>();
@@ -34,11 +36,11 @@ public class StatusPlayer
 
 		var list = instanceMap.get(status);
 
-		if (list.isEmpty())
+		if (!list.isEmpty())
 		{
 			if (status.stackable) // New instances are stacked on current instance.
 			{
-				list.get(0).HandleStack();
+				list.get(0).status.HandleStack(list.get(0));
 			}
 			else if (status.multiInstance) // New instances create new instances.
 			{
@@ -75,6 +77,9 @@ public class StatusPlayer
 			status.OnStart(instance);
 			instance.hasStarted = true;
 		}
+		if (Statuses.Debug)
+			LogCraft.Log("Adding status to:", player.getName(), "Status", status.name);
+
 	}
 
 	public void RemoveStatus(StatusInstance instance)
@@ -85,6 +90,9 @@ public class StatusPlayer
 		instance.status.OnEnd(instance);
 		statuses.remove(instance);
 		instanceMap.get(instance.status).remove(instance);
+
+		if (Statuses.Debug)
+			LogCraft.Log("Removing status from:", player.getName(), "Status", instance.status.name);
 	}
 
 	public void RemoveAll(StatusBase status)
@@ -116,13 +124,18 @@ public class StatusPlayer
 
 	public void OnTick(int tick)
 	{
-		statuses.forEach((status) ->
+		for (int i = statuses.size() - 1; i > -1; i--)
 		{
-			if (status.hasStarted && !status.shouldRemove)
-			{
-				status.status.OnTick(tick, status);
-			}
-		});
+			statuses.get(i).status.OnTick(tick, statuses.get(i));
+		}
 	}
 
+	public void LoadStatus(StatusInstance instance)
+	{
+		if (!instanceMap.containsKey(instance.status))
+			instanceMap.put(instance.status, new ArrayList<StatusInstance>());
+
+		statuses.add(instance);
+		instanceMap.get(instance.status).add(instance);
+	}
 }

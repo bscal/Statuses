@@ -2,11 +2,14 @@ package me.bscal.statuses;
 
 import java.io.File;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import me.DevTec.TheAPI.ConfigAPI.Config;
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.core.StatusManager;
+import me.bscal.statuses.statuses.BleedStatus;
+import me.bscal.statuses.storage.SQLiteAPI;
 import me.bscal.statuses.triggers.PlayerDamageDoneTrigger;
 import me.bscal.statuses.triggers.PlayerDamageRecievedTrigger;
 
@@ -14,12 +17,14 @@ public class Statuses extends JavaPlugin
 {
 
 	private static Statuses m_singleton;
-	
+
 	public static boolean Debug;
 
 	private Config m_config;
 
 	private StatusManager m_sm;
+
+	private SQLiteAPI m_database;
 
 	public void onEnable()
 	{
@@ -31,15 +36,23 @@ public class Statuses extends JavaPlugin
 
 		m_config = new Config(getName() + File.separator + "config.yml");
 		Debug = m_config.getBoolean("DebugModeEnabled");
-
+		m_database = new SQLiteAPI(Debug);
+		m_database.Connect();
+		
 		m_sm = new StatusManager();
-		m_sm.RegisterTrigger(new PlayerDamageDoneTrigger());
-		m_sm.RegisterTrigger(new PlayerDamageRecievedTrigger());
+		Bukkit.getPluginManager().registerEvents(m_sm, this);
+		var dmgDoneTrig = m_sm.RegisterTrigger(new PlayerDamageDoneTrigger());
+		var dmgRecTrig = m_sm.RegisterTrigger(new PlayerDamageRecievedTrigger());
+
+		m_sm.Register(new BleedStatus(), dmgRecTrig);
+
+		LogCraft.Log("StatusManager Loaded. Trigger count:", m_sm.TriggerCount(), "Status Count:", m_sm.StatusCount());
+		m_sm.StartRunnable();
 	}
 
 	public void onDisable()
 	{
-
+		m_database.Close();
 	}
 
 	public static Statuses Get()
@@ -55,6 +68,11 @@ public class Statuses extends JavaPlugin
 	public StatusManager GetStatusMgr()
 	{
 		return m_sm;
+	}
+
+	public SQLiteAPI GetDB()
+	{
+		return m_database;
 	}
 
 }

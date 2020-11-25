@@ -9,8 +9,11 @@ import java.util.TreeMap;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.Statuses;
@@ -24,8 +27,9 @@ public class StatusManager implements Listener
 	Map<Player, StatusPlayer> players = new HashMap<Player, StatusPlayer>();
 
 	List<StatusBase> statuses = new ArrayList<StatusBase>();
+	List<StatusTrigger> triggers = new ArrayList<StatusTrigger>();
 	Map<StatusTrigger, List<StatusBase>> triggerToStatus = new HashMap<StatusTrigger, List<StatusBase>>();
-	Map<Class<?>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<Class<?>, TreeMap<Integer, List<StatusTrigger>>>();
+	Map<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>>();
 
 	public void StartRunnable()
 	{
@@ -37,33 +41,42 @@ public class StatusManager implements Listener
 			{
 				for (var pair : players.entrySet())
 				{
-					if (pair.getKey().isOnline())
-					{
-						pair.getValue().OnTick(Bukkit.getCurrentTick());
-					}
+					pair.getValue().OnTick(Bukkit.getCurrentTick());
 				}
 			}
 
 		}, 0L, 1L);
 	}
 
-	public void RegisterTrigger(StatusTrigger trigger)
+	public void AddPlayer(StatusPlayer sPlayer)
 	{
-		if (trigger == null)
+		if (players.containsKey(sPlayer.player))
 			return;
-		
-		Class<? extends Event> event = trigger.eventClass;
 
-		if (!event.isInstance(Event.class))
-		{
-			LogCraft.LogErr("Trigger failed to register. Error: event is not a Bukkit Event.");
-			return;
-		}
+		players.put(sPlayer.player, sPlayer);
+	}
+
+	public void RemovePlayer(StatusPlayer sPlayer)
+	{
+		players.remove(sPlayer.player);
+	}
+
+	public StatusPlayer GetPlayer(Player p)
+	{
+		return players.get(p);
+	}
+
+	public StatusTrigger RegisterTrigger(StatusTrigger trigger)
+	{
+		Class<? extends Event> event = trigger.eventClass;
 
 		if (!eventToTrigger.containsKey(event))
 		{
-			var map = eventToTrigger.put(event, new TreeMap<Integer, List<StatusTrigger>>());
-			map.put(trigger.GetWeight(), new ArrayList<StatusTrigger>()).add(trigger);
+			eventToTrigger.put(event, new TreeMap<Integer, List<StatusTrigger>>());
+			var map = eventToTrigger.get(event);
+			map.put(trigger.GetWeight(), new ArrayList<StatusTrigger>());
+			var list = map.get(trigger.GetWeight());
+			list.add(trigger);
 		}
 		else
 		{
@@ -73,7 +86,11 @@ public class StatusManager implements Listener
 			else
 				map.get(trigger.GetWeight()).add(trigger);
 		}
+		triggers.add(trigger);
 
+		LogCraft.LogErr("[ ok ] Registering trigger: ", event.getSimpleName(), trigger.getClass().getSimpleName());
+
+		return trigger;
 	}
 
 	public void Register(StatusBase status, StatusTrigger trigger)
@@ -96,33 +113,82 @@ public class StatusManager implements Listener
 
 		triggerToStatus.get(trigger).add(status);
 
-		LogCraft.LogErr("[ ok ] Registering status: ", status.name, trigger.toString());
+		LogCraft.LogErr("[ ok ] Registering status: ", status.name, trigger.getClass().getSimpleName());
+	}
+
+	public StatusBase GetStatus(String name)
+	{
+		for (int i = 0; i < statuses.size(); i++)
+		{
+			if (statuses.get(i).name.equalsIgnoreCase(name))
+				return statuses.get(i);
+		}
+		return null;
+	}
+
+	public StatusTrigger GetTrigger(String name)
+	{
+		for (int i = 0; i < statuses.size(); i++)
+		{
+			if (triggers.get(i).name.equalsIgnoreCase(name))
+				return triggers.get(i);
+		}
+		return null;
+	}
+
+	public int TriggerCount()
+	{
+		return triggers.size();
+	}
+
+	public int StatusCount()
+	{
+		return statuses.size();
 	}
 
 	public void TriggerPlayer(PlayerTrigger trigger, Player p)
 	{
 		for (var status : triggerToStatus.get(trigger))
 		{
-			StatusPlayer sPlayer = players.get(p);
-			sPlayer.AddStatus(status);
+			if (status.ShouldApply(trigger, p))
+			{
+				StatusPlayer sPlayer = players.get(p);
+				sPlayer.AddStatus(status);
+			}
 		}
 	}
 
+	@EventHandler
+	public void OnJoin(PlayerJoinEvent e)
+	{
+		StatusPlayer sPlayer = new StatusPlayer(e.getPlayer());
+		Statuses.Get().GetDB().LoadPlayer("user_statuses", sPlayer);
+		AddPlayer(sPlayer);
+	}
+
+	@EventHandler
+	public void OnExit(PlayerQuitEvent e)
+	{
+		StatusPlayer sPlayer = players.get(e.getPlayer());
+		Statuses.Get().GetDB().SavePlayer("user_statuses", sPlayer);
+		RemovePlayer(sPlayer);
+	}
+
+	@EventHandler
 	public void OnEntityDamageByEntity(EntityDamageByEntityEvent e)
 	{
 		var map = eventToTrigger.get(e.getClass());
 
 		for (var triggers : map.values())
-	{
+		{
 			for (var trig : triggers)
 			{
 				if (trig.IsValid(e))
 				{
 					if (trig instanceof PlayerTrigger)
-						TriggerPlayer((PlayerTrigger)trig, ((PlayerTrigger)trig).GetPlayer());
+						TriggerPlayer((PlayerTrigger) trig, ((PlayerTrigger) trig).GetPlayer());
 				}
 			}
 		}
 	}
-
 }
