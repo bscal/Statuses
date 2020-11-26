@@ -9,7 +9,7 @@ import me.DevTec.TheAPI.ConfigAPI.Config;
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.core.StatusManager;
 import me.bscal.statuses.statuses.BleedStatus;
-import me.bscal.statuses.storage.SQLiteAPI;
+import me.bscal.statuses.storage.SQLAPI;
 import me.bscal.statuses.triggers.PlayerDamageDoneTrigger;
 import me.bscal.statuses.triggers.PlayerDamageRecievedTrigger;
 
@@ -24,7 +24,7 @@ public class Statuses extends JavaPlugin
 
 	private StatusManager m_sm;
 
-	private SQLiteAPI m_database;
+	private SQLAPI m_database;
 
 	public void onEnable()
 	{
@@ -36,7 +36,7 @@ public class Statuses extends JavaPlugin
 
 		m_config = new Config(getName() + File.separator + "config.yml");
 		Debug = m_config.getBoolean("DebugModeEnabled");
-		m_database = new SQLiteAPI(Debug);
+		m_database = new SQLAPI(Debug, m_config.getBoolean("EnableMysql"));
 		m_database.Connect();
 		
 		m_sm = new StatusManager();
@@ -70,7 +70,7 @@ public class Statuses extends JavaPlugin
 		return m_sm;
 	}
 
-	public SQLiteAPI GetDB()
+	public SQLAPI GetDB()
 	{
 		return m_database;
 	}

@@ -1,2 +1,16 @@
 # Enable debug mode
 DebugModeEnabled: true
+
+# Store player statuses data with MYSQL instead of SQLite
+EnableMysql: false
+
+# Ticks to update the StatusManager
+TicksPerUpdate: 1
+
+# Only used if EnableMysql is true
+mysql:
+  host: "localhost"
+  port: "3306"
+  database: "minecraft"
+  username: "root"
+  password: "123"

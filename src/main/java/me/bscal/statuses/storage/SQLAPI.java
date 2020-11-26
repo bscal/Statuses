@@ -14,28 +14,48 @@ import me.bscal.statuses.Statuses;
 import me.bscal.statuses.core.StatusInstance;
 import me.bscal.statuses.core.StatusPlayer;
 
-public class SQLiteAPI
+public class SQLAPI
 {
 
 	Connection c;
 	PreparedStatement stmt;
 
 	private boolean m_debug;
+	private boolean m_mysqlEnabled;
 
-	public SQLiteAPI(boolean debug)
+	public SQLAPI(final boolean debug, final boolean mysqlEnabled)
 	{
 		m_debug = debug;
+		m_mysqlEnabled = mysqlEnabled;
 	}
 
 	public void Connect()
 	{
+
 		try
 		{
-			Class.forName("org.sqlite.JDBC");
-			c = DriverManager.getConnection("jdbc:sqlite:plugins/Statuses/test.db");
-			if (c.isClosed())
-				Log("[ err ] Connected to database failed!");
+			if (c != null)
+				return;
+			
+			if (m_mysqlEnabled)
+			{
+				String host = Statuses.Get().getConfig().getString("mysql.host");
+				String port	= Statuses.Get().getConfig().getString("mysql.port");
+				String db	= Statuses.Get().getConfig().getString("mysql.database");
+				String user	= Statuses.Get().getConfig().getString("mysql.username");
+				String pass	= Statuses.Get().getConfig().getString("mysql.password");
+				
+				Class.forName("com.mysql.jdbc.Driver");
+				c = DriverManager.getConnection(MessageFormat.format("jdbc:mysql://{0}:{1}/{2}", host, port, db), user,
+						pass);
+			}
 			else
+			{
+				Class.forName("org.sqlite.JDBC");
+				c = DriverManager.getConnection("jdbc:sqlite:plugins/Statuses/users.db");
+			}
+
+			if (!c.isClosed())
 			{
 				Log("[ ok ] Connected to database success!");
 
@@ -57,13 +77,60 @@ public class SQLiteAPI
 	{
 		try
 		{
-			c.close();
+			if (c != null || c.isClosed())
+				c.close();
 		}
 		catch (SQLException e)
 		{
 			e.printStackTrace();
 		}
 	}
+
+	/*-
+	 * ************************************* 
+	 * * Saving and Loading Status Players *
+	 * *************************************
+	 */
+
+	public void LoadPlayer(String table, StatusPlayer sp)
+	{
+		String sql = MessageFormat.format("SELECT * FROM {0} WHERE UUID = ?;", table);
+		try
+		{
+			stmt = c.prepareStatement(sql);
+			stmt.setString(1, sp.player.getUniqueId().toString());
+			ResultSet rs = stmt.executeQuery();
+			while (rs.next())
+			{
+				sp.LoadStatus((StatusInstance) new StatusInstance(sp).ToObject(rs));
+			}
+			if (m_debug)
+				Log("[ LoadPlayer ]", sp.player.getName(), rs.getStatement());
+			Statuses.Get().GetDB().Delete(table, sp.player);
+		}
+		catch (SQLException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void SavePlayer(String table, StatusPlayer sp)
+	{
+		Log(sp.statuses.size());
+		for (int i = 0; i < sp.statuses.size(); i++)
+		{
+			if (sp.statuses.get(i) != null)
+				Insert(table, sp.statuses.get(i).GetColumns(), sp.statuses.get(i).GetValues());
+		}
+		if (m_debug)
+			Log("[ SavePlayer ]", sp.player.getName());
+	}
+
+	/*-
+	 * ************************
+	 * * SQL Insert functions *
+	 * ************************
+	 */
 
 	public void Insert(String table, Player p)
 	{
@@ -94,7 +161,8 @@ public class SQLiteAPI
 	public void Insert(String table, String cols, Object[] vals)
 	{
 		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < vals.length; i++) {
+		for (int i = 0; i < vals.length; i++)
+		{
 			if (i == vals.length - 1)
 				sb.append("?");
 			else
@@ -119,6 +187,12 @@ public class SQLiteAPI
 		}
 	}
 
+	/*-
+	 * ************************
+	 * * SQL Select functions *
+	 * ************************
+	 */
+
 	/**
 	 * Returns ResultSet. *Important* You will want to format the where string for a
 	 * prepared statement. For example "UUID = ? AND name = ?"
@@ -138,8 +212,9 @@ public class SQLiteAPI
 			{
 				stmt.setObject(i + 1, vals[i]);
 			}
+
 			ResultSet rs = stmt.executeQuery();
-			
+
 			return rs;
 		}
 		catch (SQLException e)
@@ -147,40 +222,6 @@ public class SQLiteAPI
 			e.printStackTrace();
 		}
 		return null;
-	}
-
-	public void LoadPlayer(String table, StatusPlayer sp)
-	{
-		String sql = MessageFormat.format("SELECT * FROM {0} WHERE UUID = ?;", table);
-		try
-		{
-			stmt = c.prepareStatement(sql);
-			stmt.setString(1, sp.player.getUniqueId().toString());
-			ResultSet rs = stmt.executeQuery();
-			while (rs.next())
-			{
-				sp.LoadStatus((StatusInstance) new StatusInstance(sp).ToObject(rs));
-			}
-			if (m_debug)
-				Log("[ LoadPlayer ]", sp.player.getName(), rs.getStatement());
-			Statuses.Get().GetDB().Delete(table, sp.player);
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	public void SavePlayer(String table, StatusPlayer sp)
-	{
-		Log(sp.statuses.size());
-		for (int i = 0; i < sp.statuses.size(); i++)
-		{
-			if (sp.statuses.get(i) != null)
-				Insert(table, sp.statuses.get(i).GetColumns(), sp.statuses.get(i).GetValues());
-		}
-		if (m_debug)
-			Log("[ SavePlayer ]", sp.player.getName());
 	}
 
 	/**
@@ -209,6 +250,12 @@ public class SQLiteAPI
 		}
 		return null;
 	}
+
+	/*-
+	 * ************************ 
+	 * * SQL Update functions * 
+	 * ************************
+	 */
 
 	/**
 	 * Updates value by player uuid.
@@ -240,12 +287,13 @@ public class SQLiteAPI
 	/**
 	 * Updates a column with a objects value using where string in the statement.
 	 * 
-	 * @param table - table name.
-	 * @param col   - column name. Only 1.
-	 * @param updatedVal   - updated value.
-	 * @param where - where string. *!* Format as sql prepared statement where
-	 *              clause: "UUID = ? AND name = ?"
-	 * @param whereVals  - objects to insert into where caluse for prepared statement.
+	 * @param table      - table name.
+	 * @param col        - column name. Only 1.
+	 * @param updatedVal - updated value.
+	 * @param where      - where string. *!* Format as sql prepared statement where
+	 *                   clause: "UUID = ? AND name = ?"
+	 * @param whereVals  - objects to insert into where caluse for prepared
+	 *                   statement.
 	 */
 	public void UpdateVarWhere(String table, String col, Object updatedVal, String where, Object... whereVals)
 	{
@@ -268,6 +316,12 @@ public class SQLiteAPI
 			e.printStackTrace();
 		}
 	}
+
+	/*-
+	 * ************************ 
+	 * * SQL Delete functions *
+	 * ************************
+	 */
 
 	public void Delete(String table, Player p)
 	{
