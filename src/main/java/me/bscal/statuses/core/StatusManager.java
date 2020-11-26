@@ -35,7 +35,6 @@ public class StatusManager implements Listener
 	{
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Statuses.Get(), new Runnable()
 		{
-
 			@Override
 			public void run()
 			{
@@ -45,7 +44,7 @@ public class StatusManager implements Listener
 				}
 			}
 
-		}, 0L, 1L);
+		}, 0L, Math.max(1, Statuses.Get().getConfig().getLong("TicksPerUpdate")));
 	}
 
 	public void AddPlayer(StatusPlayer sPlayer)
