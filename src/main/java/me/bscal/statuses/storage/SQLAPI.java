@@ -36,15 +36,15 @@ public class SQLAPI
 		{
 			if (c != null)
 				return;
-			
+
 			if (m_mysqlEnabled)
 			{
 				String host = Statuses.Get().getConfig().getString("mysql.host");
-				String port	= Statuses.Get().getConfig().getString("mysql.port");
-				String db	= Statuses.Get().getConfig().getString("mysql.database");
-				String user	= Statuses.Get().getConfig().getString("mysql.username");
-				String pass	= Statuses.Get().getConfig().getString("mysql.password");
-				
+				String port = Statuses.Get().getConfig().getString("mysql.port");
+				String db = Statuses.Get().getConfig().getString("mysql.database");
+				String user = Statuses.Get().getConfig().getString("mysql.username");
+				String pass = Statuses.Get().getConfig().getString("mysql.password");
+
 				Class.forName("com.mysql.jdbc.Driver");
 				c = DriverManager.getConnection(MessageFormat.format("jdbc:mysql://{0}:{1}/{2}", host, port, db), user,
 						pass);
@@ -60,9 +60,10 @@ public class SQLAPI
 				Log("[ ok ] Connected to database success!");
 
 				stmt = c.prepareStatement("CREATE TABLE IF NOT EXISTS user_statuses ("
-						+ "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " + "`status_id` int(11) NOT NULL, "
-						+ "`UUID` VARCHAR(64) NOT NULL, " + "`name` VARCHAR(32) NOT NULL, "
-						+ "`duration` int(11) NOT NULL, " + "`stacks` int(11) NOT NULL default 0);");
+						+ "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " + "`status_id` BIGINT NOT NULL, "
+						+ "`UUID` VARCHAR(36) NOT NULL, " + "`name` VARCHAR(32) NOT NULL, "
+						+ "`key` VARCHAR(64) NOT NULL, " + "`duration` INTEGER NOT NULL, "
+						+ "`stacks` TINYINT NOT NULL default 0);");
 				stmt.executeUpdate();
 				stmt.close();
 			}
@@ -105,7 +106,7 @@ public class SQLAPI
 				sp.LoadStatus((StatusInstance) new StatusInstance(sp).ToObject(rs));
 			}
 			if (m_debug)
-				Log("[ LoadPlayer ]", sp.player.getName(), rs.getStatement());
+				Log("[ LoadPlayer ]", sp.player.getName());
 			Statuses.Get().GetDB().Delete(table, sp.player);
 		}
 		catch (SQLException e)
