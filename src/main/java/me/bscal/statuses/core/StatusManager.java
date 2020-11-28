@@ -1,49 +1,41 @@
 package me.bscal.statuses.core;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
+import me.bscal.logcraft.LogCraft;
+import me.bscal.statuses.Statuses;
+import me.bscal.statuses.effects.TriggerEffect;
+import me.bscal.statuses.statuses.StatusBase;
+import me.bscal.statuses.triggers.PlayerTrigger;
+import me.bscal.statuses.triggers.StatusTrigger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import me.bscal.logcraft.LogCraft;
-import me.bscal.statuses.Statuses;
-import me.bscal.statuses.statuses.StatusBase;
-import me.bscal.statuses.triggers.PlayerTrigger;
-import me.bscal.statuses.triggers.StatusTrigger;
+import java.util.*;
 
 public class StatusManager implements Listener
 {
 
-	Map<Player, StatusPlayer> players = new HashMap<Player, StatusPlayer>();
+	Map<Player, StatusPlayer> players = new HashMap<>();
 
-	List<StatusBase> statuses = new ArrayList<StatusBase>();
-	List<StatusTrigger> triggers = new ArrayList<StatusTrigger>();
-	Map<StatusTrigger, List<StatusBase>> triggerToStatus = new HashMap<StatusTrigger, List<StatusBase>>();
-	Map<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>>();
+	List<StatusBase> statuses = new ArrayList<>();
+	List<StatusTrigger> triggers = new ArrayList<>();
+	Map<StatusTrigger, List<StatusBase>> triggerToStatus = new HashMap<>();
+	Map<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<>();
+	Map<StatusTrigger, List<StatusInstance>> triggerEffects = new HashMap<>();
 
 	public void StartRunnable()
 	{
-		Bukkit.getScheduler().scheduleSyncRepeatingTask(Statuses.Get(), new Runnable()
-		{
-			@Override
-			public void run()
+		Bukkit.getScheduler().scheduleSyncRepeatingTask(Statuses.Get(), () -> {
+			for (var pair : players.entrySet())
 			{
-				for (var pair : players.entrySet())
-				{
-					pair.getValue().OnTick(Bukkit.getCurrentTick());
-				}
+				pair.getValue().OnTick(Bukkit.getCurrentTick());
 			}
-
 		}, 0L, Math.max(1, Statuses.Get().getConfig().getLong("TicksPerUpdate")));
 	}
 
@@ -115,6 +107,43 @@ public class StatusManager implements Listener
 		LogCraft.LogErr("[ ok ] Registering status: ", status.name, trigger.getClass().getSimpleName());
 	}
 
+	public void AddTriggerEffect(StatusInstance instance)
+	{
+		if (instance == null)
+		{
+			LogCraft.LogErr("[ AddTriggerEffect] Instance or effects were null.");
+			return;
+		}
+
+		if (Statuses.Debug)
+			LogCraft.Log("Adding TriggerEffect", instance.status.name);
+
+		for (var trig : instance.status.triggers)
+		{
+			if (!triggerEffects.containsKey(trig))
+			{
+				triggerEffects.put(trig, new ArrayList<>());
+			}
+
+			triggerEffects.get(trig).add(instance);
+		}
+	}
+
+	public void RemoveTriggerEffect(StatusInstance instance)
+	{
+		if (instance == null)
+			return;
+
+		if (Statuses.Debug)
+			LogCraft.Log("Removing TriggerEffect", instance.status.name);
+
+		for (int i = 0; i < instance.status.triggers.size(); i++)
+		{
+			List<StatusInstance> list = triggerEffects.get(instance.status.triggers.get(i));
+			list.remove(instance);
+		}
+	}
+
 	public StatusBase GetStatus(String name)
 	{
 		for (int i = 0; i < statuses.size(); i++)
@@ -127,11 +156,14 @@ public class StatusManager implements Listener
 
 	public StatusTrigger GetTrigger(String name)
 	{
-		for (int i = 0; i < statuses.size(); i++)
+		for (int i = 0; i < triggers.size(); i++)
 		{
 			if (triggers.get(i).name.equalsIgnoreCase(name))
 				return triggers.get(i);
 		}
+
+		LogCraft.LogErr("Trying to get Trigger (" + name + ") but does not exist.");
+
 		return null;
 	}
 
@@ -147,47 +179,74 @@ public class StatusManager implements Listener
 
 	public void TriggerPlayer(PlayerTrigger trigger, Player p)
 	{
+		if (!triggerToStatus.containsKey(trigger)) return;
+
 		for (var status : triggerToStatus.get(trigger))
 		{
 			if (status.ShouldApply(trigger, p))
 			{
 				StatusPlayer sPlayer = players.get(p);
-				sPlayer.AddStatus(status);
+				sPlayer.AddStatus(status, status.GetKey(trigger, p));
 			}
 		}
 	}
 
-	@EventHandler
-	public void OnJoin(PlayerJoinEvent e)
+	@EventHandler public void OnJoin(PlayerJoinEvent e)
 	{
 		StatusPlayer sPlayer = new StatusPlayer(e.getPlayer());
 		Statuses.Get().GetDB().LoadPlayer("user_statuses", sPlayer);
 		AddPlayer(sPlayer);
 	}
 
-	@EventHandler
-	public void OnExit(PlayerQuitEvent e)
+	@EventHandler public void OnExit(PlayerQuitEvent e)
 	{
 		StatusPlayer sPlayer = players.get(e.getPlayer());
 		Statuses.Get().GetDB().SavePlayer("user_statuses", sPlayer);
 		RemovePlayer(sPlayer);
 	}
 
-	@EventHandler
-	public void OnEntityDamageByEntity(EntityDamageByEntityEvent e)
+	private void HandleEvent(final Event e)
 	{
 		var map = eventToTrigger.get(e.getClass());
+
+		LogCraft.LogMap(map);
 
 		for (var triggers : map.values())
 		{
 			for (var trig : triggers)
 			{
-				if (trig.IsValid(e))
+				trig.SetEvent(e);
+				if (trig.IsValid())
 				{
 					if (trig instanceof PlayerTrigger)
+					{
 						TriggerPlayer((PlayerTrigger) trig, ((PlayerTrigger) trig).GetPlayer());
+					}
+
+					if (triggerEffects.containsKey(trig))
+					{
+						for (StatusInstance instance : triggerEffects.get(trig))
+						{
+							for (int i = 0; i < instance.status.effects.size(); i++)
+							{
+								if (instance.status.effects.get(i) instanceof TriggerEffect)
+									((TriggerEffect) instance.status.effects.get(i)).OnTrigger(instance, trig);
+							}
+						}
+					}
 				}
 			}
 		}
+	}
+
+	@EventHandler public void OnEntityDamageByEntity(EntityDamageByEntityEvent e)
+	{
+		HandleEvent(e);
+	}
+
+	@EventHandler public void OnEntityDamage(EntityDamageEvent e)
+	{
+		if (e.getEntity() instanceof Player)
+			HandleEvent(e);
 	}
 }
