@@ -14,4 +14,6 @@ public abstract class PlayerTrigger extends StatusTrigger
 	{
 		return (Player) GetEntity();
 	}
+
+	public boolean IsPlayer() { return GetEntity() instanceof Player; }
 }

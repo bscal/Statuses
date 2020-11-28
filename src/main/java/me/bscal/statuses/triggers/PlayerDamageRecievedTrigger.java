@@ -8,7 +8,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 public class PlayerDamageRecievedTrigger extends PlayerTrigger
 {
 	/*** Event used by the Trigger */
-	public EntityDamageByEntityEvent event;
+	public EntityDamageByEntityEvent m_event;
 
 	public PlayerDamageRecievedTrigger()
 	{
@@ -16,21 +16,25 @@ public class PlayerDamageRecievedTrigger extends PlayerTrigger
 	}
 
 	@Override
-	public boolean IsValid(Event evt)
+	public boolean IsValid()
 	{
-		event = (EntityDamageByEntityEvent) evt;
-		return event.getEntity() instanceof Player && event.getDamage() > 0;
+		return m_event.getEntity() instanceof Player && m_event.getDamage() > 0;
 	}
 
 	@Override
 	public Entity GetEntity()
 	{
-		return event.getEntity();
+		return m_event.getEntity();
 	}
 
 	@Override
 	public Event GetEvent()
 	{
-		return event;
+		return m_event;
+	}
+
+	@Override public void SetEvent(Event e)
+	{
+		m_event = (EntityDamageByEntityEvent) e;
 	}
 }
