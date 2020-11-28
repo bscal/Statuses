@@ -1,7 +1,9 @@
 package me.bscal.statuses.statuses;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
+import me.bscal.statuses.effects.TickEffect;
 import org.bukkit.entity.Player;
 
 import me.bscal.logcraft.LogCraft;
@@ -24,34 +26,46 @@ public abstract class StatusBase
 
 	public final String name;
 	public final StatusGroup group;
-	public final List<StatusEffect> effects = new ArrayList<StatusEffect>();
-	public final List<StatusTrigger> triggers = new ArrayList<StatusTrigger>();
+	public final List<StatusEffect> effects = new ArrayList<>();
+	public final List<StatusTrigger> triggers = new ArrayList<>();
 
-	public int ticksPerUpdate = 20;
+	/** Number of ticks to wait before an Update Tick will occur */
+	public final int ticksPerUpdate;
+	/** The duration in seconds of the status */
 	public final float baseDuration;
 
-	public boolean removeOnDeath;
-	public boolean persistent;
-	public boolean aliveForDecay;
-	public boolean stackable;
-	public boolean multiInstance;
-	public boolean addDuration;
+	/** Should the status be removed on death */
+	public boolean shouldRemoveOnDeath;
+	/** Should the status be saved after logging off */
+	public boolean isPersistent;
+	/** Does the Entity need to be alive for ticks to happen */
+	public boolean shouldBeAliveToTick;
+	/** Can the status stack */
+	public boolean isStackable;
+	/** Can the status have multiple instances */
+	public boolean isMultiInstance;
+	/** Should the duration be added if status is single instance */
+	public boolean shouldAddDuration;
+	/** Should multiple instances with the same key be allowed */
+	public boolean multiInstanceKeys;
 
+	/**
+	 * The max duration in seconds if <code>shouldAddDuration</code> is true. -1 is
+	 * no max duration
+	 */
 	public float maxDuration = NO_MAX_DURATION;
 
 	public StatusBase(final String name, final StatusGroup group, final float duration)
 	{
-		this.name = name;
-		this.group = group;
-		this.baseDuration = duration;
+		this(name, group, duration, (int) TICKS_PER_SECOND);
 	}
 
-	public StatusBase(final String name, final StatusGroup group, final int ticksPerUpdate, final float duration)
+	public StatusBase(final String name, final StatusGroup group, final float duration, final int ticksPerUpdate)
 	{
 		this.name = name;
 		this.group = group;
-		this.ticksPerUpdate = ticksPerUpdate;
 		this.baseDuration = duration;
+		this.ticksPerUpdate = ticksPerUpdate;
 	}
 
 	public StatusInstance CreateInstance(Player p)
@@ -61,7 +75,12 @@ public abstract class StatusBase
 
 	public StatusInstance CreateInstance(StatusPlayer sPlayer)
 	{
-		return new StatusInstance(sPlayer, this, baseDuration);
+		return new StatusInstance(sPlayer, this, baseDuration, "");
+	}
+	
+	public StatusInstance CreateInstance(StatusPlayer sPlayer, String key)
+	{
+		return new StatusInstance(sPlayer, this, baseDuration, key);
 	}
 
 	/**
@@ -140,7 +159,8 @@ public abstract class StatusBase
 		{
 			effects.forEach((effect) ->
 			{
-				effect.OnTick(tick, instance);
+				if (effect instanceof TickEffect)
+					((TickEffect) effect).OnTick(tick, instance);
 			});
 		}
 
@@ -149,13 +169,15 @@ public abstract class StatusBase
 	@Override
 	public boolean equals(Object other)
 	{
-		if (other == null || !(other instanceof StatusBase))
+		if (this == null || other == null || !(other instanceof StatusBase))
 			return false;
 
-		return name.equals(name);
+		return name.equals(((StatusBase)other).name);
 	}
 
 	public abstract boolean ShouldApply(StatusTrigger trigger, Player p);
+
+	public abstract String GetKey(StatusTrigger trigger, Player p);
 
 	public void HandleStack(StatusInstance statusInstance)
 	{

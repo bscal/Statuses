@@ -23,5 +23,11 @@ public class BleedStatus extends StatusBase
 			LogCraft.Log("Trigger ShouldApply: ", trigger.GetEvent().getEventName());
 		return true;
 	}
+	
+	@Override
+	public String GetKey(StatusTrigger trigger, Player p)
+	{
+		return "";
+	}
 
 }
