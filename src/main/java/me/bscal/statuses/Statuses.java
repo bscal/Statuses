@@ -2,6 +2,8 @@ package me.bscal.statuses;
 
 import java.io.File;
 
+import me.bscal.statuses.triggers.EntityDamagedTrigger;
+import me.bscal.statuses.triggers.StatusTrigger;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -9,6 +11,7 @@ import me.DevTec.TheAPI.ConfigAPI.Config;
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.core.StatusManager;
 import me.bscal.statuses.statuses.BleedStatus;
+import me.bscal.statuses.statuses.FractureStatus;
 import me.bscal.statuses.storage.SQLAPI;
 import me.bscal.statuses.triggers.PlayerDamageDoneTrigger;
 import me.bscal.statuses.triggers.PlayerDamageRecievedTrigger;
@@ -38,13 +41,15 @@ public class Statuses extends JavaPlugin
 		Debug = m_config.getBoolean("DebugModeEnabled");
 		m_database = new SQLAPI(Debug, m_config.getBoolean("EnableMysql"));
 		m_database.Connect();
-		
+
 		m_sm = new StatusManager();
 		Bukkit.getPluginManager().registerEvents(m_sm, this);
-		var dmgDoneTrig = m_sm.RegisterTrigger(new PlayerDamageDoneTrigger());
-		var dmgRecTrig = m_sm.RegisterTrigger(new PlayerDamageRecievedTrigger());
+		StatusTrigger dmgDoneToEntTrig = m_sm.RegisterTrigger(new PlayerDamageDoneTrigger());
+		StatusTrigger dmgRecByEntTrig = m_sm.RegisterTrigger(new PlayerDamageRecievedTrigger());
+		StatusTrigger dmgRecTrig = m_sm.RegisterTrigger(new EntityDamagedTrigger());
 
-		m_sm.Register(new BleedStatus(), dmgRecTrig);
+		m_sm.Register(new BleedStatus(), dmgRecByEntTrig);
+		m_sm.Register(new FractureStatus(), dmgRecTrig);
 
 		LogCraft.Log("StatusManager Loaded. Trigger count:", m_sm.TriggerCount(), "Status Count:", m_sm.StatusCount());
 		m_sm.StartRunnable();
