@@ -3,6 +3,12 @@ package me.bscal.statuses.triggers;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Event;
 
+/**
+ * StatusTrigger is a slight abstraction over Spigot Events.
+ * Triggers are linked to events. But Triggers have logic that allows you to somewhat standardize
+ * the player involved in the event, if the event is valid, and allows to easily hook into several
+ * types of events little more easier and cleaner.
+ */
 public abstract class StatusTrigger
 {
 
@@ -40,6 +46,9 @@ public abstract class StatusTrigger
 	 */
 	public abstract void SetEvent(Event e);
 
+	/**
+	 * Returns true if the given Event's isInstance of this trigger's eventClass field
+	 */
 	public boolean DoesExtendEvent(Event e)
 	{
 		return eventClass.isInstance(e);

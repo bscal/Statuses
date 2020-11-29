@@ -22,13 +22,16 @@ public class StatusManager implements Listener
 {
 
 	Map<Player, StatusPlayer> players = new HashMap<>();
-
 	List<StatusBase> statuses = new ArrayList<>();
 	List<StatusTrigger> triggers = new ArrayList<>();
+
 	Map<StatusTrigger, List<StatusBase>> triggerToStatus = new HashMap<>();
 	Map<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<>();
 	Map<StatusTrigger, List<StatusInstance>> triggerEffects = new HashMap<>();
 
+	/**
+	 * Status Loops
+	 */
 	public void StartRunnable()
 	{
 		Bukkit.getScheduler().scheduleSyncRepeatingTask(Statuses.Get(), () -> {
@@ -50,6 +53,8 @@ public class StatusManager implements Listener
 	public void RemovePlayer(StatusPlayer sPlayer)
 	{
 		players.remove(sPlayer.player);
+		sPlayer.Destroy();
+		sPlayer = null;
 	}
 
 	public StatusPlayer GetPlayer(Player p)
@@ -107,6 +112,10 @@ public class StatusManager implements Listener
 		LogCraft.LogErr("[ ok ] Registering status: ", status.name, trigger.getClass().getSimpleName());
 	}
 
+	/**
+	 * Sets an instance to have any TriggerEffects updated.
+	 * @param instance
+	 */
 	public void AddTriggerEffect(StatusInstance instance)
 	{
 		if (instance == null)
@@ -154,6 +163,11 @@ public class StatusManager implements Listener
 		return null;
 	}
 
+	/**
+	 * Gets a Trigger by name. Use <code>Trigger.class.getSimpleName()</code> the correct name of the trigger.
+	 * @param name
+	 * @return
+	 */
 	public StatusTrigger GetTrigger(String name)
 	{
 		for (int i = 0; i < triggers.size(); i++)
@@ -183,6 +197,9 @@ public class StatusManager implements Listener
 
 		for (var status : triggerToStatus.get(trigger))
 		{
+			if (Statuses.Debug)
+				LogCraft.Log("Trying to Apply status", status.name, trigger.name, p.getName(), status.ShouldApply(trigger, p));
+
 			if (status.ShouldApply(trigger, p))
 			{
 				StatusPlayer sPlayer = players.get(p);
@@ -205,6 +222,12 @@ public class StatusManager implements Listener
 		RemovePlayer(sPlayer);
 	}
 
+	/**
+	 * Properly handle events. If a trigger exists linking to the inputted event.
+	 * If so updates any instances with TriggerEffects so the effects can update.
+	 * And <code>TriggerPlayer()</code> will be called to attempt to apply on player.
+	 * @param e - Event from bukkit listener
+	 */
 	private void HandleEvent(final Event e)
 	{
 		var map = eventToTrigger.get(e.getClass());
@@ -218,11 +241,7 @@ public class StatusManager implements Listener
 				trig.SetEvent(e);
 				if (trig.IsValid())
 				{
-					if (trig instanceof PlayerTrigger)
-					{
-						TriggerPlayer((PlayerTrigger) trig, ((PlayerTrigger) trig).GetPlayer());
-					}
-
+					// Updates and TriggerEffects that are linked to this trigger.
 					if (triggerEffects.containsKey(trig))
 					{
 						for (StatusInstance instance : triggerEffects.get(trig))
@@ -233,6 +252,12 @@ public class StatusManager implements Listener
 									((TriggerEffect) instance.status.effects.get(i)).OnTrigger(instance, trig);
 							}
 						}
+					}
+
+					if (trig instanceof PlayerTrigger)
+					{
+						// If trigger should fire call TriggerPlayer to see if the status should be applied.
+						TriggerPlayer((PlayerTrigger) trig, ((PlayerTrigger) trig).GetPlayer());
 					}
 				}
 			}

@@ -15,8 +15,12 @@ import me.bscal.statuses.triggers.StatusTrigger;
 
 /***
  * 
- * The base class for all Statuses.
+ * The base class for all Statuses. You will need to define an individual status once and register it with
+ * the StatusManager. Statuses will create a unique StatusInstance with all data needed. StatusInstances will be
+ * passed to the StatusEffects which contain the logic.
  *
+ * When you register a Status you will need to link it with 1 or more StatusTriggers. This will, when a valid
+ * trigger is called, check the Status's ShouldApply() function. If true the status will be applied to the player.
  */
 public abstract class StatusBase
 {
@@ -118,6 +122,22 @@ public abstract class StatusBase
 			return true;
 		}
 		return false;
+	}
+
+	public void OnInitialize(StatusInstance instance)
+	{
+		effects.forEach((effect) ->
+		{
+			effect.OnInitialize(instance);
+		});
+	}
+
+	public void OnCleanup(StatusInstance instance)
+	{
+		effects.forEach((effect) ->
+		{
+			effect.OnCleanup(instance);
+		});
 	}
 
 	public void OnStart(StatusInstance instance)

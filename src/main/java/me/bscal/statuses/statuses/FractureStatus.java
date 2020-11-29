@@ -15,15 +15,12 @@ public class FractureStatus extends StatusBase
 	public FractureStatus()
 	{
 		super("Fracture", StatusGroup.FRACTURE, 30);
-		LogCraft.Log(Statuses.Get().GetStatusMgr().GetTrigger(EntityDamagedTrigger.class.getSimpleName()).name);
 		triggers.add(Statuses.Get().GetStatusMgr().GetTrigger(EntityDamagedTrigger.class.getSimpleName()));
 		effects.add(new FractureEffect());
 	}
 
 	@Override public boolean ShouldApply(StatusTrigger trigger, Player p)
 	{
-		if (Statuses.Debug)
-			LogCraft.Log("Trigger ShouldApply: ", trigger.GetEvent().getEventName());
 		EntityDamageEvent e = (EntityDamageEvent) trigger.GetEvent();
 		return e.getCause() == DamageCause.FALL && e.getDamage() > 5.0;
 	}
