@@ -1,5 +1,6 @@
 package me.bscal.statuses.statuses;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,8 +14,10 @@ import me.bscal.statuses.core.StatusPlayer;
 import me.bscal.statuses.effects.StatusEffect;
 import me.bscal.statuses.triggers.StatusTrigger;
 
+import javax.annotation.Nonnull;
+
 /***
- * 
+ *
  * The base class for all Statuses. You will need to define an individual status once and register it with
  * the StatusManager. Statuses will create a unique StatusInstance with all data needed. StatusInstances will be
  * passed to the StatusEffects which contain the logic.
@@ -33,25 +36,43 @@ public abstract class StatusBase
 	public final List<StatusEffect> effects = new ArrayList<>();
 	public final List<StatusTrigger> triggers = new ArrayList<>();
 
-	/** Number of ticks to wait before an Update Tick will occur */
+	/**
+	 * Number of ticks to wait before an Update Tick will occur
+	 */
 	public final int ticksPerUpdate;
-	/** The duration in seconds of the status */
+	/**
+	 * The duration in seconds of the status
+	 */
 	public final float baseDuration;
 
-	/** Should the status be removed on death */
-	public boolean shouldRemoveOnDeath;
-	/** Should the status be saved after logging off */
-	public boolean isPersistent;
-	/** Does the Entity need to be alive for ticks to happen */
-	public boolean shouldBeAliveToTick;
-	/** Can the status stack */
-	public boolean isStackable;
-	/** Can the status have multiple instances */
-	public boolean isMultiInstance;
-	/** Should the duration be added if status is single instance */
-	public boolean shouldAddDuration;
-	/** Should multiple instances with the same key be allowed */
-	public boolean multiInstanceKeys;
+	/**
+	 * Should the status be removed on death
+	 */
+	public boolean shouldRemoveOnDeath = true;
+	/**
+	 * Should the status be saved after logging off
+	 */
+	public boolean isPersistent = true;
+	/**
+	 * Does the Entity need to be alive for ticks to happen
+	 */
+	public boolean shouldBeAlive = true;
+	/**
+	 * Can the status stack
+	 */
+	public boolean isStackable = false;
+	/**
+	 * Can the status have multiple instances
+	 */
+	public boolean isMultiInstance = false;
+	/**
+	 * Should the duration be added if status is single instance
+	 */
+	public boolean shouldAddDuration = false;
+	/**
+	 * Should multiple instances with the same key be allowed
+	 */
+	public boolean noMatchingKeys = true;
 
 	/**
 	 * The max duration in seconds if <code>shouldAddDuration</code> is true. -1 is
@@ -81,7 +102,7 @@ public abstract class StatusBase
 	{
 		return new StatusInstance(sPlayer, this, baseDuration, "");
 	}
-	
+
 	public StatusInstance CreateInstance(StatusPlayer sPlayer, String key)
 	{
 		return new StatusInstance(sPlayer, this, baseDuration, key);
@@ -90,21 +111,20 @@ public abstract class StatusBase
 	/**
 	 * Handles general info on ticks. Handle duration, should be removed, should
 	 * tick. Most cases you will not need to call this.
-	 * 
+	 *
 	 * @param tick
 	 * @param instance
 	 * @return true if OnTick should run, false if not.
 	 */
 	public boolean InternalTick(int tick, StatusInstance instance)
 	{
-		if (instance.hasStarted && tick % ticksPerUpdate == 0 && instance.sPlayer.player.isOnline()
-				&& !instance.sPlayer.player.isDead())
+		if (instance.hasStarted && tick % ticksPerUpdate == 0 && instance.sPlayer.player.isOnline())
 		{
+			if (shouldBeAlive && !instance.sPlayer.player.isDead())
+				return false;
 
 			if (Statuses.Debug)
-			{
 				LogCraft.Log("Status ", instance.status.name, " updating...");
-			}
 
 			instance.duration -= TICKS_PER_SECOND / ticksPerUpdate;
 
@@ -126,32 +146,28 @@ public abstract class StatusBase
 
 	public void OnInitialize(StatusInstance instance)
 	{
-		effects.forEach((effect) ->
-		{
+		effects.forEach((effect) -> {
 			effect.OnInitialize(instance);
 		});
 	}
 
 	public void OnCleanup(StatusInstance instance)
 	{
-		effects.forEach((effect) ->
-		{
+		effects.forEach((effect) -> {
 			effect.OnCleanup(instance);
 		});
 	}
 
 	public void OnStart(StatusInstance instance)
 	{
-		effects.forEach((effect) ->
-		{
+		effects.forEach((effect) -> {
 			effect.OnStart(instance);
 		});
 	}
 
 	public void OnEnd(StatusInstance instance)
 	{
-		effects.forEach((effect) ->
-		{
+		effects.forEach((effect) -> {
 			effect.OnEnd(instance);
 		});
 
@@ -159,16 +175,14 @@ public abstract class StatusBase
 
 	public void OnDeath(StatusInstance instance)
 	{
-		effects.forEach((effect) ->
-		{
+		effects.forEach((effect) -> {
 			effect.OnDeath(instance);
 		});
 	}
 
 	public void OnRespawn(StatusInstance instance)
 	{
-		effects.forEach((effect) ->
-		{
+		effects.forEach((effect) -> {
 			effect.OnRespawn(instance);
 		});
 	}
@@ -177,8 +191,7 @@ public abstract class StatusBase
 	{
 		if (InternalTick(tick, instance))
 		{
-			effects.forEach((effect) ->
-			{
+			effects.forEach((effect) -> {
 				if (effect instanceof TickEffect)
 					((TickEffect) effect).OnTick(tick, instance);
 			});
@@ -186,21 +199,29 @@ public abstract class StatusBase
 
 	}
 
-	@Override
-	public boolean equals(Object other)
+	public void HandleStack(StatusInstance statusInstance)
 	{
-		if (this == null || other == null || !(other instanceof StatusBase))
+	}
+
+	@Override public boolean equals(Object other)
+	{
+		if (this == other)
+			return true;
+
+		if (!(other instanceof StatusBase))
 			return false;
 
-		return name.equals(((StatusBase)other).name);
+		return this.name.equals(((StatusBase) other).name);
+	}
+
+	@Override public String toString()
+	{
+		return MessageFormat.format("Status[{0}::{1}] - Ticks({2}), Dur({3}), effects({4}), trigs({5})", name, group,
+				ticksPerUpdate, baseDuration, effects.size(), triggers.size());
 	}
 
 	public abstract boolean ShouldApply(StatusTrigger trigger, Player p);
 
 	public abstract String GetKey(StatusTrigger trigger, Player p);
-
-	public void HandleStack(StatusInstance statusInstance)
-	{
-	}
 
 }

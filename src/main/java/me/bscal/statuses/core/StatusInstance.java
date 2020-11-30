@@ -2,6 +2,7 @@ package me.bscal.statuses.core;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -12,7 +13,7 @@ import me.bscal.statuses.storage.DBObject;
 
 public class StatusInstance implements DBObject
 {
-	
+
 	public long id;
 	public StatusPlayer sPlayer;
 	public StatusBase status;
@@ -20,7 +21,7 @@ public class StatusInstance implements DBObject
 
 	public float duration;
 	public int stackCount;
-	
+
 	public boolean hasStarted;
 	public boolean shouldRemove;
 
@@ -38,7 +39,7 @@ public class StatusInstance implements DBObject
 	{
 		this(sp, status, duration, "");
 	}
-	
+
 	public StatusInstance(final StatusPlayer sp, final StatusBase status, final float duration, final String key)
 	{
 		this.id = System.nanoTime();
@@ -48,34 +49,35 @@ public class StatusInstance implements DBObject
 		this.key = key;
 	}
 
-	@Override
-	public boolean equals(Object other)
+	@Override public boolean equals(Object other)
 	{
-		if (this == null || other == null)
-			return false;
+		if (this == other)
+			return true;
 
 		if (!(other instanceof StatusInstance))
 			return false;
 
-		return id == ((StatusInstance) other).id && status.equals(((StatusInstance) other).status);
+		StatusInstance otherInst = (StatusInstance) other;
+		return this.id == otherInst.id && this.status.equals(otherInst.status) && this.key.equals(otherInst.key);
 	}
 
-	@Override
-	public String GetColumns()
+	@Override public String toString()
+	{
+		return MessageFormat.format("StatusInstance[{0}::{1}::{2}]", status.name, key, id);
+	}
+
+	@Override public String GetColumns()
 	{
 		return "UUID,status_id,name,key,duration,stacks";
 	}
 
-	@Override
-	public Object[] GetValues()
+	@Override public Object[] GetValues()
 	{
-		return new Object[]
-		{ sPlayer.player.getUniqueId().toString(), id, status.name, key, duration, stackCount
+		return new Object[] { sPlayer.player.getUniqueId().toString(), id, status.name, key, duration, stackCount
 		};
 	}
 
-	@Override
-	public Object ToObject(ResultSet rs)
+	@Override public Object ToObject(ResultSet rs)
 	{
 		try
 		{

@@ -1,16 +1,15 @@
 package me.bscal.statuses.core;
 
+import me.bscal.logcraft.LogCraft;
+import me.bscal.statuses.Statuses;
+import me.bscal.statuses.statuses.StatusBase;
+import org.bukkit.entity.Player;
+
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import me.bscal.statuses.storage.SQLAPI;
-import org.bukkit.entity.Player;
-
-import me.bscal.logcraft.LogCraft;
-import me.bscal.statuses.Statuses;
-import me.bscal.statuses.statuses.StatusBase;
 
 public class StatusPlayer
 {
@@ -19,8 +18,8 @@ public class StatusPlayer
 	public static final int MAX_INSTANCES = 15;
 
 	public Player player;
-	public List<StatusInstance> statuses = new ArrayList<StatusInstance>();
-	public Map<StatusBase, List<StatusInstance>> instanceMap = new HashMap<StatusBase, List<StatusInstance>>();
+	public List<StatusInstance> statuses = new ArrayList<>();
+	public Map<StatusBase, List<StatusInstance>> instanceMap = new HashMap<>();
 
 	public StatusPlayer(final Player p)
 	{
@@ -33,7 +32,7 @@ public class StatusPlayer
 			return;
 
 		if (!instanceMap.containsKey(status))
-			instanceMap.put(status, new ArrayList<StatusInstance>());
+			instanceMap.put(status, new ArrayList<>());
 
 		var list = instanceMap.get(status);
 
@@ -41,23 +40,32 @@ public class StatusPlayer
 		{
 			if (status.isStackable) // New instances are stacked on current instance.
 			{
-				list.get(0).status.HandleStack(list.get(0));
+				status.HandleStack(list.get(0));
 			}
 			else if (status.isMultiInstance) // New instances create new instances.
 			{
-				StatusInstance instance = status.CreateInstance(player);
+				if (status.noMatchingKeys)
+				{
+					for (StatusInstance inst : list)
+					{
+						if (inst.key.equals(key))
+							return;
+					}
+				}
+
 				if (list.size() > MAX_INSTANCES)
 				{
 					list.remove(0);
 				}
-				AddInstance(instance);
+				AddInstance(status.CreateInstance(this, key));
 			}
 			else if (status.shouldAddDuration) // New instances add to current duration.
 			{
+				StatusInstance inst = list.get(0);
 				if (status.maxDuration == StatusBase.NO_MAX_DURATION)
-					list.get(0).duration += status.baseDuration;
+					inst.duration += status.baseDuration;
 				else
-					list.get(0).duration = Math.min(status.maxDuration, list.get(0).duration + status.baseDuration);
+					inst.duration = Math.min(status.maxDuration, inst.duration + status.baseDuration);
 			}
 			else // New instances replaces current instance.
 			{
@@ -75,7 +83,7 @@ public class StatusPlayer
 		statuses.add(instance);
 		instanceMap.get(instance.status).add(instance);
 
-		if (instance.status.effects != null && instance.status.effects.size() > 0)
+		if (instance.status.effects.size() > 0)
 			Statuses.Get().GetStatusMgr().AddTriggerEffect(instance);
 
 		instance.status.OnInitialize(instance);
@@ -135,7 +143,7 @@ public class StatusPlayer
 
 	public void RemoveAll()
 	{
-		StatusInstance inst = null;
+		StatusInstance inst;
 		for (int i = statuses.size() - 1; i > -1; i--)
 		{
 			if (statuses.get(i) != null)
@@ -149,10 +157,10 @@ public class StatusPlayer
 
 	public void RemoveAllAndSave(String table)
 	{
-		StatusInstance inst = null;
 		for (int i = statuses.size() - 1; i > -1; i--)
 		{
-			if (statuses.get(i) != null)
+			StatusInstance inst = statuses.get(i);
+			if (inst != null && inst.status.isPersistent)
 			{
 				inst = statuses.get(i);
 				SaveInstance(inst, table);
@@ -196,8 +204,12 @@ public class StatusPlayer
 	public void LoadStatus(StatusInstance instance)
 	{
 		if (!instanceMap.containsKey(instance.status))
-			instanceMap.put(instance.status, new ArrayList<StatusInstance>());
+			instanceMap.put(instance.status, new ArrayList<>());
 
 		AddInstance(instance);
+	}
+
+	@Override public String toString() {
+		return MessageFormat.format("StatusPlayer:{0}, Size: {1}", player.getName(), statuses.size());
 	}
 }

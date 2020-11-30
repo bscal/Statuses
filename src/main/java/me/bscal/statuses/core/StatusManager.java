@@ -13,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
@@ -114,6 +115,7 @@ public class StatusManager implements Listener
 
 	/**
 	 * Sets an instance to have any TriggerEffects updated.
+	 *
 	 * @param instance
 	 */
 	public void AddTriggerEffect(StatusInstance instance)
@@ -165,6 +167,7 @@ public class StatusManager implements Listener
 
 	/**
 	 * Gets a Trigger by name. Use <code>Trigger.class.getSimpleName()</code> the correct name of the trigger.
+	 *
 	 * @param name
 	 * @return
 	 */
@@ -193,12 +196,14 @@ public class StatusManager implements Listener
 
 	public void TriggerPlayer(PlayerTrigger trigger, Player p)
 	{
-		if (!triggerToStatus.containsKey(trigger)) return;
+		if (!triggerToStatus.containsKey(trigger))
+			return;
 
 		for (var status : triggerToStatus.get(trigger))
 		{
 			if (Statuses.Debug)
-				LogCraft.Log("Trying to Apply status", status.name, trigger.name, p.getName(), status.ShouldApply(trigger, p));
+				LogCraft.Log("Trying to Apply status", status.name, trigger.name, p.getName(),
+						status.ShouldApply(trigger, p));
 
 			if (status.ShouldApply(trigger, p))
 			{
@@ -226,6 +231,7 @@ public class StatusManager implements Listener
 	 * Properly handle events. If a trigger exists linking to the inputted event.
 	 * If so updates any instances with TriggerEffects so the effects can update.
 	 * And <code>TriggerPlayer()</code> will be called to attempt to apply on player.
+	 *
 	 * @param e - Event from bukkit listener
 	 */
 	private void HandleEvent(final Event e)
@@ -262,6 +268,23 @@ public class StatusManager implements Listener
 				}
 			}
 		}
+	}
+
+	@EventHandler public void OnDeath(PlayerDeathEvent e)
+	{
+		StatusPlayer sp = players.get(e.getEntity());
+		for (int i = sp.statuses.size() - 1; i > -1; i--)
+		{
+			StatusInstance inst = sp.statuses.get(i);
+			inst.status.OnDeath(inst);
+			if (inst.status.shouldRemoveOnDeath)
+			{
+				inst.shouldRemove = true;
+				sp.RemoveStatus(inst, i);
+			}
+		}
+
+		HandleEvent(e);
 	}
 
 	@EventHandler public void OnEntityDamageByEntity(EntityDamageByEntityEvent e)
