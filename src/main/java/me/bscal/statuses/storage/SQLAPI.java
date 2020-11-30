@@ -117,14 +117,10 @@ public class SQLAPI
 
 	public void SavePlayer(String table, StatusPlayer sp)
 	{
-		Log(sp.statuses.size());
-		for (int i = 0; i < sp.statuses.size(); i++)
-		{
-			if (sp.statuses.get(i) != null)
-				Insert(table, sp.statuses.get(i).GetColumns(), sp.statuses.get(i).GetValues());
-		}
 		if (m_debug)
-			Log("[ SavePlayer ]", sp.player.getName());
+			Log("[ SavePlayer ]", sp.statuses.size(), sp.player.getName());
+
+		sp.RemoveAllAndSave(table);
 	}
 
 	/*-

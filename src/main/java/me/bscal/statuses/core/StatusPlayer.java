@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import me.bscal.statuses.storage.SQLAPI;
 import org.bukkit.entity.Player;
 
 import me.bscal.logcraft.LogCraft;
@@ -21,12 +22,12 @@ public class StatusPlayer
 	public List<StatusInstance> statuses = new ArrayList<StatusInstance>();
 	public Map<StatusBase, List<StatusInstance>> instanceMap = new HashMap<StatusBase, List<StatusInstance>>();
 
-	public StatusPlayer(Player p)
+	public StatusPlayer(final Player p)
 	{
 		player = p;
 	}
 
-	public void AddStatus(StatusBase status)
+	public void AddStatus(final StatusBase status, final String key)
 	{
 		if (status == null || statuses.size() > MAX_STATUSES)
 			return;
@@ -38,25 +39,20 @@ public class StatusPlayer
 
 		if (!list.isEmpty())
 		{
-			if (status.stackable) // New instances are stacked on current instance.
+			if (status.isStackable) // New instances are stacked on current instance.
 			{
 				list.get(0).status.HandleStack(list.get(0));
 			}
-			else if (status.multiInstance) // New instances create new instances.
+			else if (status.isMultiInstance) // New instances create new instances.
 			{
 				StatusInstance instance = status.CreateInstance(player);
 				if (list.size() > MAX_INSTANCES)
 				{
 					list.remove(0);
-					list.add(instance);
 				}
-				else
-					list.add(instance);
-				statuses.add(instance);
-				status.OnStart(instance);
-				instance.hasStarted = true;
+				AddInstance(instance);
 			}
-			else if (status.addDuration) // New instances add to current duration.
+			else if (status.shouldAddDuration) // New instances add to current duration.
 			{
 				if (status.maxDuration == StatusBase.NO_MAX_DURATION)
 					list.get(0).duration += status.baseDuration;
@@ -67,49 +63,114 @@ public class StatusPlayer
 			{
 				list.get(0).duration = status.baseDuration;
 			}
-
 		}
 		else
 		{
-			StatusInstance instance = status.CreateInstance(player);
-			list.add(instance);
-			statuses.add(instance);
-			status.OnStart(instance);
+			AddInstance(status.CreateInstance(this, key));
+		}
+	}
+
+	private void AddInstance(StatusInstance instance)
+	{
+		statuses.add(instance);
+		instanceMap.get(instance.status).add(instance);
+
+		if (instance.status.effects != null && instance.status.effects.size() > 0)
+			Statuses.Get().GetStatusMgr().AddTriggerEffect(instance);
+
+		instance.status.OnInitialize(instance);
+
+		if (!instance.hasStarted)
+		{
+			instance.status.OnStart(instance);
 			instance.hasStarted = true;
 		}
-		if (Statuses.Debug)
-			LogCraft.Log("Adding status to:", player.getName(), "Status", status.name);
 
+		if (Statuses.Debug)
+			LogCraft.Log("Adding status to:", player.getName(), instance.status.name);
 	}
 
 	public void RemoveStatus(StatusInstance instance)
 	{
-		if (instance == null || !instance.hasStarted)
-			return;
-
-		instance.status.OnEnd(instance);
-		statuses.remove(instance);
-		instanceMap.get(instance.status).remove(instance);
-
-		if (Statuses.Debug)
-			LogCraft.Log("Removing status from:", player.getName(), "Status", instance.status.name);
+		RemoveStatus(instance, -1);
 	}
 
-	public void RemoveAll(StatusBase status)
+	public void RemoveStatus(StatusInstance instance, int index)
+	{
+		if (instance == null)
+			return;
+
+		instance.status.OnCleanup(instance);
+
+		if (instance.shouldRemove)
+			instance.status.OnEnd(instance);
+
+		if (index == -1)
+			statuses.remove(instance);
+		else
+			statuses.remove(index); // minor optimization
+
+		instanceMap.get(instance.status).remove(instance);
+		Statuses.Get().GetStatusMgr().RemoveTriggerEffect(instance);
+
+		if (Statuses.Debug)
+			LogCraft.Log("Removing status from:", player.getName(), instance.status.name);
+
+		instance = null;
+	}
+
+	public void RemoveAllByStatus(StatusBase status)
 	{
 		if (status == null)
 			return;
 
-		for (int i = statuses.size() - 1; i > -1; i++)
+		for (int i = statuses.size() - 1; i > -1; i--)
 		{
 			if (statuses.get(i).status == status)
 			{
-				status.OnEnd(statuses.get(i));
-				statuses.remove(i);
+				RemoveStatus(statuses.get(i), i);
 			}
 		}
+	}
 
-		instanceMap.get(status).clear();
+	public void RemoveAll()
+	{
+		StatusInstance inst = null;
+		for (int i = statuses.size() - 1; i > -1; i--)
+		{
+			if (statuses.get(i) != null)
+			{
+				inst = statuses.get(i);
+				RemoveStatus(inst, i);
+				inst.status.OnCleanup(inst);
+			}
+		}
+	}
+
+	public void RemoveAllAndSave(String table)
+	{
+		StatusInstance inst = null;
+		for (int i = statuses.size() - 1; i > -1; i--)
+		{
+			if (statuses.get(i) != null)
+			{
+				inst = statuses.get(i);
+				SaveInstance(inst, table);
+				RemoveStatus(inst, i);
+			}
+		}
+	}
+
+	public void SaveInstance(StatusInstance instance, String table)
+	{
+		Statuses.Get().GetDB().Insert(table, instance.GetColumns(), instance.GetValues());
+	}
+
+	public void Destroy()
+	{
+		player = null;
+		statuses = null;
+		instanceMap = null;
 	}
 
 	public StatusInstance[] FindInstances(StatusBase status)
@@ -124,6 +185,8 @@ public class StatusPlayer
 
 	public void OnTick(int tick)
 	{
+		if (Statuses.Debug)
+			LogCraft.Log("Updating...", player.getName(), "# of ", statuses.size());
 		for (int i = statuses.size() - 1; i > -1; i--)
 		{
 			statuses.get(i).status.OnTick(tick, statuses.get(i));
@@ -135,7 +198,6 @@ public class StatusPlayer
 		if (!instanceMap.containsKey(instance.status))
 			instanceMap.put(instance.status, new ArrayList<StatusInstance>());
 
-		statuses.add(instance);
-		instanceMap.get(instance.status).add(instance);
+		AddInstance(instance);
 	}
 }

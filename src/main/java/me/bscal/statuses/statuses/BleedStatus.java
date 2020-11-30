@@ -19,8 +19,6 @@ public class BleedStatus extends StatusBase
 	@Override
 	public boolean ShouldApply(StatusTrigger trigger, Player p)
 	{
-		if (Statuses.Debug)
-			LogCraft.Log("Trigger ShouldApply: ", trigger.GetEvent().getEventName());
 		return true;
 	}
 	
