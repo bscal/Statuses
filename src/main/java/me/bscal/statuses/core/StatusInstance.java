@@ -12,15 +12,17 @@ import me.bscal.statuses.storage.DBObject;
 
 public class StatusInstance implements DBObject
 {
-
+	
 	public long id;
 	public StatusPlayer sPlayer;
 	public StatusBase status;
+	public String key;
 
 	public float duration;
+	public int stackCount;
+	
 	public boolean hasStarted;
 	public boolean shouldRemove;
-	public int stackCount;
 
 	public StatusInstance(final StatusPlayer p)
 	{
@@ -29,17 +31,21 @@ public class StatusInstance implements DBObject
 
 	public StatusInstance(final StatusPlayer sp, final StatusBase status)
 	{
-		this.id = System.currentTimeMillis();
-		this.sPlayer = sp;
-		this.status = status;
+		this(sp, status, status.baseDuration);
 	}
 
 	public StatusInstance(final StatusPlayer sp, final StatusBase status, final float duration)
 	{
-		this.id = System.currentTimeMillis();
+		this(sp, status, duration, "");
+	}
+	
+	public StatusInstance(final StatusPlayer sp, final StatusBase status, final float duration, final String key)
+	{
+		this.id = System.nanoTime();
 		this.sPlayer = sp;
 		this.status = status;
 		this.duration = duration;
+		this.key = key;
 	}
 
 	@Override
@@ -57,14 +63,14 @@ public class StatusInstance implements DBObject
 	@Override
 	public String GetColumns()
 	{
-		return "UUID,status_id,name,duration,stacks";
+		return "UUID,status_id,name,key,duration,stacks";
 	}
 
 	@Override
 	public Object[] GetValues()
 	{
 		return new Object[]
-		{ sPlayer.player.getUniqueId().toString(), id, status.name, duration, stackCount
+		{ sPlayer.player.getUniqueId().toString(), id, status.name, key, duration, stackCount
 		};
 	}
 
@@ -73,11 +79,12 @@ public class StatusInstance implements DBObject
 	{
 		try
 		{
-			sPlayer.player = Bukkit.getPlayer(UUID.fromString(rs.getString("UUID")));
-			id = rs.getLong("status_id");
-			status = Statuses.Get().GetStatusMgr().GetStatus(rs.getString("name"));
-			duration = (float) rs.getInt("duration");
-			stackCount = rs.getInt("stacks");
+			id = rs.getLong(2);
+			sPlayer.player = Bukkit.getPlayer(UUID.fromString(rs.getString(3)));
+			status = Statuses.Get().GetStatusMgr().GetStatus(rs.getString(4));
+			key = rs.getString(5);
+			duration = rs.getInt(6);
+			stackCount = rs.getInt(7);
 			hasStarted = true;
 		}
 		catch (SQLException e)
