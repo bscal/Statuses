@@ -1,7 +1,9 @@
 package me.bscal.statuses.core;
 
 import me.bscal.logcraft.LogCraft;
+import me.bscal.logcraft.LogLevel;
 import me.bscal.statuses.Statuses;
+import me.bscal.statuses.effects.StatusEffect;
 import me.bscal.statuses.effects.TriggerEffect;
 import me.bscal.statuses.statuses.StatusBase;
 import me.bscal.statuses.triggers.PlayerTrigger;
@@ -23,8 +25,10 @@ public class StatusManager implements Listener
 {
 
 	Map<Player, StatusPlayer> players = new HashMap<>();
+
 	List<StatusBase> statuses = new ArrayList<>();
 	List<StatusTrigger> triggers = new ArrayList<>();
+	Map<String, StatusEffect> effects = new HashMap<>();
 
 	Map<StatusTrigger, List<StatusBase>> triggerToStatus = new HashMap<>();
 	Map<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<>();
@@ -65,27 +69,31 @@ public class StatusManager implements Listener
 
 	public StatusTrigger RegisterTrigger(StatusTrigger trigger)
 	{
-		Class<? extends Event> event = trigger.eventClass;
+		if (trigger.IsEventTrigger(trigger.eventClass))
+		{
+			Class<? extends Event> event = trigger.eventClass;
 
-		if (!eventToTrigger.containsKey(event))
-		{
-			eventToTrigger.put(event, new TreeMap<Integer, List<StatusTrigger>>());
-			var map = eventToTrigger.get(event);
-			map.put(trigger.GetWeight(), new ArrayList<StatusTrigger>());
-			var list = map.get(trigger.GetWeight());
-			list.add(trigger);
-		}
-		else
-		{
-			var map = eventToTrigger.get(event);
-			if (!map.containsKey(trigger.GetWeight()))
-				map.put(trigger.GetWeight(), new ArrayList<StatusTrigger>()).add(trigger);
+			if (!eventToTrigger.containsKey(event))
+			{
+				eventToTrigger.put(event, new TreeMap<>());
+				var map = eventToTrigger.get(event);
+				map.put(trigger.GetWeight(), new ArrayList<>());
+				var list = map.get(trigger.GetWeight());
+				list.add(trigger);
+			}
 			else
-				map.get(trigger.GetWeight()).add(trigger);
+			{
+				var map = eventToTrigger.get(event);
+				if (!map.containsKey(trigger.GetWeight()))
+					map.put(trigger.GetWeight(), new ArrayList<>()).add(trigger);
+				else
+					map.get(trigger.GetWeight()).add(trigger);
+			}
 		}
+
 		triggers.add(trigger);
 
-		LogCraft.LogErr("[ ok ] Registering trigger: ", event.getSimpleName(), trigger.getClass().getSimpleName());
+		LogCraft.Log("[ ok ] Registering trigger: ", trigger.getClass().getSimpleName());
 
 		return trigger;
 	}
@@ -110,7 +118,19 @@ public class StatusManager implements Listener
 
 		triggerToStatus.get(trigger).add(status);
 
-		LogCraft.LogErr("[ ok ] Registering status: ", status.name, trigger.getClass().getSimpleName());
+		LogCraft.Log("[ ok ] Registering status: ", status.name, trigger.getClass().getSimpleName());
+	}
+
+	public void RegisterEffect(StatusEffect effect)
+	{
+		RegisterEffect(effect, effect.getClass().getSimpleName());
+	}
+
+	public void RegisterEffect(StatusEffect effect, String name)
+	{
+		effects.put(name, effect);
+
+		LogCraft.Log("[ ok ] Registering effect: ", name);
 	}
 
 	/**
@@ -184,6 +204,14 @@ public class StatusManager implements Listener
 		return null;
 	}
 
+	public StatusEffect GetEffect(String name)
+	{
+		if (effects.containsKey(name) && LogLevel.Is(LogLevel.INFO_ONLY))
+			LogCraft.LogErr("[ error ] No registered effect named " + name);
+
+		return effects.get(name);
+	}
+
 	public int TriggerCount()
 	{
 		return triggers.size();
@@ -194,10 +222,25 @@ public class StatusManager implements Listener
 		return statuses.size();
 	}
 
-	public void TriggerPlayer(PlayerTrigger trigger, Player p)
+	public int EffectsCount() { return effects.size(); }
+
+	public boolean TriggerPlayer(PlayerTrigger trigger, Player p)
 	{
 		if (!triggerToStatus.containsKey(trigger))
-			return;
+			return false;
+
+		// Updates and TriggerEffects that are linked to this trigger.
+		if (triggerEffects.containsKey(trigger))
+		{
+			for (StatusInstance instance : triggerEffects.get(trigger))
+			{
+				for (int i = 0; i < instance.status.effects.size(); i++)
+				{
+					if (instance.status.effects.get(i) instanceof TriggerEffect)
+						((TriggerEffect) instance.status.effects.get(i)).OnTrigger(instance, trigger);
+				}
+			}
+		}
 
 		for (var status : triggerToStatus.get(trigger))
 		{
@@ -209,8 +252,12 @@ public class StatusManager implements Listener
 			{
 				StatusPlayer sPlayer = players.get(p);
 				sPlayer.AddStatus(status, status.GetKey(trigger, p));
+
+				if (!status.procAllTriggers)
+					return true;
 			}
 		}
+		return false;
 	}
 
 	@EventHandler public void OnJoin(PlayerJoinEvent e)
@@ -231,6 +278,8 @@ public class StatusManager implements Listener
 	 * Properly handle events. If a trigger exists linking to the inputted event.
 	 * If so updates any instances with TriggerEffects so the effects can update.
 	 * And <code>TriggerPlayer()</code> will be called to attempt to apply on player.
+	 * Triggers are processed by the Trigger's GetWeight() then by order of registration into that weight.
+	 * So
 	 *
 	 * @param e - Event from bukkit listener
 	 */
@@ -240,33 +289,21 @@ public class StatusManager implements Listener
 
 		LogCraft.LogMap(map);
 
-		for (var triggers : map.values())
+		boolean handled = false;
+		for (List<StatusTrigger> triggers : map.values())
 		{
-			for (var trig : triggers)
+			for (StatusTrigger trig : triggers)
 			{
 				trig.SetEvent(e);
-				if (trig.IsValid())
+				if (trig.IsValid() && trig instanceof PlayerTrigger)
 				{
-					// Updates and TriggerEffects that are linked to this trigger.
-					if (triggerEffects.containsKey(trig))
-					{
-						for (StatusInstance instance : triggerEffects.get(trig))
-						{
-							for (int i = 0; i < instance.status.effects.size(); i++)
-							{
-								if (instance.status.effects.get(i) instanceof TriggerEffect)
-									((TriggerEffect) instance.status.effects.get(i)).OnTrigger(instance, trig);
-							}
-						}
-					}
-
-					if (trig instanceof PlayerTrigger)
-					{
-						// If trigger should fire call TriggerPlayer to see if the status should be applied.
-						TriggerPlayer((PlayerTrigger) trig, ((PlayerTrigger) trig).GetPlayer());
-					}
+					// If trigger should fire call TriggerPlayer to see if the status should be applied.
+					handled = TriggerPlayer((PlayerTrigger) trig, ((PlayerTrigger) trig).GetPlayer());
+					break;
 				}
 			}
+			if (handled)
+				break;
 		}
 	}
 
@@ -297,4 +334,5 @@ public class StatusManager implements Listener
 		if (e.getEntity() instanceof Player)
 			HandleEvent(e);
 	}
+
 }

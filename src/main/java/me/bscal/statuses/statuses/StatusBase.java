@@ -4,6 +4,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import me.bscal.logcraft.LogLevel;
 import me.bscal.statuses.effects.TickEffect;
 import org.bukkit.entity.Player;
 
@@ -13,8 +14,6 @@ import me.bscal.statuses.core.StatusInstance;
 import me.bscal.statuses.core.StatusPlayer;
 import me.bscal.statuses.effects.StatusEffect;
 import me.bscal.statuses.triggers.StatusTrigger;
-
-import javax.annotation.Nonnull;
 
 /***
  *
@@ -73,6 +72,10 @@ public abstract class StatusBase
 	 * Should multiple instances with the same key be allowed
 	 */
 	public boolean noMatchingKeys = true;
+	/**
+	 * If true, then every trigger that registered will proc even if handled("applied")
+	 */
+	public boolean procAllTriggers;
 
 	/**
 	 * The max duration in seconds if <code>shouldAddDuration</code> is true. -1 is
@@ -146,45 +149,51 @@ public abstract class StatusBase
 
 	public void OnInitialize(StatusInstance instance)
 	{
-		effects.forEach((effect) -> {
-			effect.OnInitialize(instance);
-		});
+		if (LogLevel.Is(LogLevel.DEVELOPER))
+			LogCraft.Log("OnInitialized called. Status", instance.status.name);
+
+		effects.forEach((effect) -> effect.OnInitialize(instance));
 	}
 
 	public void OnCleanup(StatusInstance instance)
 	{
-		effects.forEach((effect) -> {
-			effect.OnCleanup(instance);
-		});
+		if (LogLevel.Is(LogLevel.DEVELOPER))
+			LogCraft.Log("OnCleanup called. Status", instance.status.name);
+
+		effects.forEach((effect) -> effect.OnCleanup(instance));
 	}
 
 	public void OnStart(StatusInstance instance)
 	{
-		effects.forEach((effect) -> {
-			effect.OnStart(instance);
-		});
+		if (LogLevel.Is(LogLevel.DEVELOPER))
+			LogCraft.Log("OnStart called. Status", instance.status.name);
+
+		effects.forEach((effect) -> effect.OnStart(instance));
 	}
 
 	public void OnEnd(StatusInstance instance)
 	{
-		effects.forEach((effect) -> {
-			effect.OnEnd(instance);
-		});
+		if (LogLevel.Is(LogLevel.DEVELOPER))
+			LogCraft.Log("OnEnd called. Status", instance.status.name);
+
+		effects.forEach((effect) -> effect.OnEnd(instance));
 
 	}
 
 	public void OnDeath(StatusInstance instance)
 	{
-		effects.forEach((effect) -> {
-			effect.OnDeath(instance);
-		});
+		if (LogLevel.Is(LogLevel.DEVELOPER))
+			LogCraft.Log("OnDeath called. Status", instance.status.name);
+
+		effects.forEach((effect) -> effect.OnDeath(instance));
 	}
 
 	public void OnRespawn(StatusInstance instance)
 	{
-		effects.forEach((effect) -> {
-			effect.OnRespawn(instance);
-		});
+		if (LogLevel.Is(LogLevel.DEVELOPER))
+			LogCraft.Log("OnRespawn called. Status", instance.status.name);
+
+		effects.forEach((effect) -> effect.OnRespawn(instance));
 	}
 
 	public void OnTick(int tick, StatusInstance instance)

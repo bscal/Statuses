@@ -9,9 +9,9 @@ import org.bukkit.event.Event;
  */
 public abstract class PlayerTrigger extends StatusTrigger
 {
-	public PlayerTrigger(Class<? extends Event> eventClass)
+	public PlayerTrigger(Class<? extends Event> evt)
 	{
-		super(eventClass);
+		super(evt);
 	}
 
 	public Player GetPlayer()

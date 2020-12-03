@@ -1,20 +1,22 @@
 package me.bscal.statuses;
 
-import java.io.File;
-
+import me.DevTec.TheAPI.ConfigAPI.Config;
+import me.bscal.logcraft.LogCraft;
+import me.bscal.logcraft.LogLevel;
+import me.bscal.statuses.core.StatusManager;
+import me.bscal.statuses.effects.BleedEffect;
+import me.bscal.statuses.effects.FractureEffect;
+import me.bscal.statuses.statuses.BleedStatus;
+import me.bscal.statuses.statuses.FractureStatus;
+import me.bscal.statuses.storage.SQLAPI;
 import me.bscal.statuses.triggers.EntityDamagedTrigger;
+import me.bscal.statuses.triggers.PlayerDamageDoneTrigger;
+import me.bscal.statuses.triggers.PlayerDamageRecievedTrigger;
 import me.bscal.statuses.triggers.StatusTrigger;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import me.DevTec.TheAPI.ConfigAPI.Config;
-import me.bscal.logcraft.LogCraft;
-import me.bscal.statuses.core.StatusManager;
-import me.bscal.statuses.statuses.BleedStatus;
-import me.bscal.statuses.statuses.FractureStatus;
-import me.bscal.statuses.storage.SQLAPI;
-import me.bscal.statuses.triggers.PlayerDamageDoneTrigger;
-import me.bscal.statuses.triggers.PlayerDamageRecievedTrigger;
+import java.io.File;
 
 public class Statuses extends JavaPlugin
 {
@@ -33,25 +35,34 @@ public class Statuses extends JavaPlugin
 	{
 		m_singleton = this;
 
-		LogCraft.Init(this);
-
 		saveDefaultConfig();
 
 		m_config = new Config(getName() + File.separator + "config.yml");
 		Debug = m_config.getBoolean("DebugModeEnabled");
+
+		LogCraft.Init(this, LogLevel.IntToLevel(m_config.getInt("LogLevel")));
+
 		m_database = new SQLAPI(Debug, m_config.getBoolean("EnableMysql"));
 		m_database.Connect();
 
 		m_sm = new StatusManager();
 		Bukkit.getPluginManager().registerEvents(m_sm, this);
+
+		// Triggers
 		StatusTrigger dmgDoneToEntTrig = m_sm.RegisterTrigger(new PlayerDamageDoneTrigger());
 		StatusTrigger dmgRecByEntTrig = m_sm.RegisterTrigger(new PlayerDamageRecievedTrigger());
 		StatusTrigger dmgRecTrig = m_sm.RegisterTrigger(new EntityDamagedTrigger());
 
+		// Effects
+		m_sm.RegisterEffect(new BleedEffect());
+		m_sm.RegisterEffect(new FractureEffect());
+
+		// Statuses
 		m_sm.Register(new BleedStatus(), dmgRecByEntTrig);
 		m_sm.Register(new FractureStatus(), dmgRecTrig);
 
-		LogCraft.Log("StatusManager Loaded. Trigger count:", m_sm.TriggerCount(), "Status Count:", m_sm.StatusCount());
+		LogCraft.Log("StatusManager Loaded. Trigger count:", m_sm.TriggerCount(), "Status Count:", m_sm.StatusCount(),
+				"Effect Count:", m_sm.EffectsCount());
 		m_sm.StartRunnable();
 	}
 

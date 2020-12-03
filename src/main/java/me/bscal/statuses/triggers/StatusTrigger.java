@@ -48,10 +48,11 @@ public abstract class StatusTrigger
 
 	/**
 	 * Returns true if the given Event's isInstance of this trigger's eventClass field
+	 * @param e
 	 */
-	public boolean DoesExtendEvent(Event e)
+	public boolean IsEventTrigger(Class<? extends Event> e)
 	{
-		return eventClass.isInstance(e);
+		return eventClass != null && e != null && eventClass.isAssignableFrom(e);
 	}
 
 	/**
