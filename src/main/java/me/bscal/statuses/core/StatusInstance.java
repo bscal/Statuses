@@ -82,7 +82,7 @@ public class StatusInstance implements DBObject
 		try
 		{
 			id = rs.getLong(2);
-			sPlayer.player = Bukkit.getPlayer(UUID.fromString(rs.getString(3)));
+			//sPlayer.player = Bukkit.getPlayer(UUID.fromString(rs.getString(3)));
 			status = Statuses.Get().GetStatusMgr().GetStatus(rs.getString(4));
 			key = rs.getString(5);
 			duration = rs.getInt(6);
