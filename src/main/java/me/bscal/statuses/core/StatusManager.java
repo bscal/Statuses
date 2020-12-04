@@ -24,15 +24,15 @@ import java.util.*;
 public class StatusManager implements Listener
 {
 
-	Map<Player, StatusPlayer> players = new HashMap<>();
+	final Map<Player, StatusPlayer> players = new HashMap<>();
 
-	List<StatusBase> statuses = new ArrayList<>();
-	List<StatusTrigger> triggers = new ArrayList<>();
-	Map<String, StatusEffect> effects = new HashMap<>();
+	final List<StatusBase> statuses = new ArrayList<>();
+	final List<StatusTrigger> triggers = new ArrayList<>();
+	final Map<String, StatusEffect> effects = new HashMap<>();
 
-	Map<StatusTrigger, List<StatusBase>> triggerToStatus = new HashMap<>();
-	Map<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<>();
-	Map<StatusTrigger, List<StatusInstance>> triggerEffects = new HashMap<>();
+	final Map<StatusTrigger, List<StatusBase>> triggerToStatus = new HashMap<>();
+	final Map<Class<? extends Event>, TreeMap<Integer, List<StatusTrigger>>> eventToTrigger = new HashMap<>();
+	final Map<StatusTrigger, List<StatusInstance>> triggerEffects = new HashMap<>();
 
 	/**
 	 * Status Loops
@@ -47,27 +47,30 @@ public class StatusManager implements Listener
 		}, 0L, Math.max(1, Statuses.Get().getConfig().getLong("TicksPerUpdate")));
 	}
 
-	public void AddPlayer(StatusPlayer sPlayer)
+	public void AddPlayer(final StatusPlayer sPlayer)
 	{
 		if (players.containsKey(sPlayer.player))
 			return;
 
+		Statuses.Get().GetDB().LoadPlayer(Statuses.SQL_USER_TBL, sPlayer);
 		players.put(sPlayer.player, sPlayer);
 	}
 
-	public void RemovePlayer(StatusPlayer sPlayer)
+	public void RemovePlayer(StatusPlayer sPlayer, final boolean save)
 	{
+		if (save)
+			Statuses.Get().GetDB().SavePlayer(Statuses.SQL_USER_TBL, sPlayer);
 		players.remove(sPlayer.player);
 		sPlayer.Destroy();
 		sPlayer = null;
 	}
 
-	public StatusPlayer GetPlayer(Player p)
+	public StatusPlayer GetPlayer(final Player p)
 	{
 		return players.get(p);
 	}
 
-	public StatusTrigger RegisterTrigger(StatusTrigger trigger)
+	public StatusTrigger RegisterTrigger(final StatusTrigger trigger)
 	{
 		if (trigger.IsEventTrigger(trigger.eventClass))
 		{
@@ -98,7 +101,7 @@ public class StatusManager implements Listener
 		return trigger;
 	}
 
-	public void Register(StatusBase status, StatusTrigger trigger)
+	public void Register(final StatusBase status, final StatusTrigger trigger)
 	{
 		if (status == null || trigger == null)
 			return;
@@ -121,12 +124,12 @@ public class StatusManager implements Listener
 		LogCraft.Log("[ ok ] Registering status: ", status.name, trigger.getClass().getSimpleName());
 	}
 
-	public void RegisterEffect(StatusEffect effect)
+	public void RegisterEffect(final StatusEffect effect)
 	{
 		RegisterEffect(effect, effect.getClass().getSimpleName());
 	}
 
-	public void RegisterEffect(StatusEffect effect, String name)
+	public void RegisterEffect(final StatusEffect effect, String name)
 	{
 		effects.put(name, effect);
 
@@ -138,7 +141,7 @@ public class StatusManager implements Listener
 	 *
 	 * @param instance
 	 */
-	public void AddTriggerEffect(StatusInstance instance)
+	public void AddTriggerEffect(final StatusInstance instance)
 	{
 		if (instance == null)
 		{
@@ -160,7 +163,7 @@ public class StatusManager implements Listener
 		}
 	}
 
-	public void RemoveTriggerEffect(StatusInstance instance)
+	public void RemoveTriggerEffect(final StatusInstance instance)
 	{
 		if (instance == null)
 			return;
@@ -175,7 +178,7 @@ public class StatusManager implements Listener
 		}
 	}
 
-	public StatusBase GetStatus(String name)
+	public StatusBase GetStatus(final String name)
 	{
 		for (int i = 0; i < statuses.size(); i++)
 		{
@@ -191,7 +194,7 @@ public class StatusManager implements Listener
 	 * @param name
 	 * @return
 	 */
-	public StatusTrigger GetTrigger(String name)
+	public StatusTrigger GetTrigger(final String name)
 	{
 		for (int i = 0; i < triggers.size(); i++)
 		{
@@ -204,7 +207,7 @@ public class StatusManager implements Listener
 		return null;
 	}
 
-	public StatusEffect GetEffect(String name)
+	public StatusEffect GetEffect(final String name)
 	{
 		if (effects.containsKey(name) && LogLevel.Is(LogLevel.INFO_ONLY))
 			LogCraft.LogErr("[ error ] No registered effect named " + name);
@@ -222,9 +225,12 @@ public class StatusManager implements Listener
 		return statuses.size();
 	}
 
-	public int EffectsCount() { return effects.size(); }
+	public int EffectsCount()
+	{
+		return effects.size();
+	}
 
-	public boolean TriggerPlayer(PlayerTrigger trigger, Player p)
+	public boolean TriggerPlayer(final PlayerTrigger trigger, final Player p)
 	{
 		if (!triggerToStatus.containsKey(trigger))
 			return false;
@@ -263,15 +269,13 @@ public class StatusManager implements Listener
 	@EventHandler public void OnJoin(PlayerJoinEvent e)
 	{
 		StatusPlayer sPlayer = new StatusPlayer(e.getPlayer());
-		Statuses.Get().GetDB().LoadPlayer("user_statuses", sPlayer);
 		AddPlayer(sPlayer);
 	}
 
 	@EventHandler public void OnExit(PlayerQuitEvent e)
 	{
 		StatusPlayer sPlayer = players.get(e.getPlayer());
-		Statuses.Get().GetDB().SavePlayer("user_statuses", sPlayer);
-		RemovePlayer(sPlayer);
+		RemovePlayer(sPlayer, true);
 	}
 
 	/**

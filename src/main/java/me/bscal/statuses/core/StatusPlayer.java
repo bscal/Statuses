@@ -10,16 +10,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-public class StatusPlayer
+public final class StatusPlayer
 {
 
 	public static final int MAX_STATUSES = 63;
 	public static final int MAX_INSTANCES = 15;
 
-	public Player player;
-	public List<StatusInstance> statuses = new ArrayList<>();
-	public Map<StatusBase, List<StatusInstance>> instanceMap = new HashMap<>();
+	public final Player player;
+	public final List<StatusInstance> statuses = new ArrayList<>();
+	public final Map<StatusBase, List<StatusInstance>> instanceMap = new HashMap<>();
 
 	public StatusPlayer(final Player p)
 	{
@@ -78,7 +79,7 @@ public class StatusPlayer
 		}
 	}
 
-	private void AddInstance(StatusInstance instance)
+	private void AddInstance(final StatusInstance instance)
 	{
 		statuses.add(instance);
 		instanceMap.get(instance.status).add(instance);
@@ -98,12 +99,12 @@ public class StatusPlayer
 			LogCraft.Log("Adding status to:", player.getName(), instance.status.name);
 	}
 
-	public void RemoveStatus(StatusInstance instance)
+	public void RemoveStatus(final StatusInstance instance)
 	{
 		RemoveStatus(instance, -1);
 	}
 
-	public void RemoveStatus(StatusInstance instance, int index)
+	public void RemoveStatus(StatusInstance instance, final int index)
 	{
 		if (instance == null)
 			return;
@@ -127,7 +128,7 @@ public class StatusPlayer
 		instance = null;
 	}
 
-	public void RemoveAllByStatus(StatusBase status)
+	public void RemoveAllByStatus(final StatusBase status)
 	{
 		if (status == null)
 			return;
@@ -141,7 +142,7 @@ public class StatusPlayer
 		}
 	}
 
-	public void RemoveAll()
+	public void RemoveAll(final boolean triggerCleanup)
 	{
 		StatusInstance inst;
 		for (int i = statuses.size() - 1; i > -1; i--)
@@ -150,12 +151,13 @@ public class StatusPlayer
 			{
 				inst = statuses.get(i);
 				RemoveStatus(inst, i);
-				inst.status.OnCleanup(inst);
+				if (triggerCleanup)
+					inst.status.OnCleanup(inst);
 			}
 		}
 	}
 
-	public void RemoveAllAndSave(String table)
+	public void RemoveAllAndSave(final String table)
 	{
 		for (int i = statuses.size() - 1; i > -1; i--)
 		{
@@ -169,29 +171,39 @@ public class StatusPlayer
 		}
 	}
 
-	public void SaveInstance(StatusInstance instance, String table)
+	public void SaveInstance(final StatusInstance instance, final String table)
 	{
 		Statuses.Get().GetDB().Insert(table, instance.GetColumns(), instance.GetValues());
 	}
 
 	public void Destroy()
 	{
-		player = null;
-		statuses = null;
-		instanceMap = null;
+		instanceMap.clear();
+		statuses.clear();
 	}
 
-	public StatusInstance[] FindInstances(StatusBase status)
+	public StatusInstance FindFirst(final StatusBase status)
 	{
-		if (status == null || !instanceMap.containsKey(status))
-		{
-			return null;
-		}
-
-		return (StatusInstance[]) instanceMap.get(status).toArray();
+		return FindInstances(status).get(0);
 	}
 
-	public void OnTick(int tick)
+	public List<StatusInstance> FindInstances(final StatusBase status)
+	{
+		if (!instanceMap.containsKey(status))
+			return null;
+
+		return instanceMap.get(status);
+	}
+
+	public List<StatusInstance> FindByKey(final StatusBase status, final String key)
+	{
+		if (!instanceMap.containsKey(status))
+			return null;
+
+		return instanceMap.get(status).stream().filter(inst -> inst.key.equals(key)).collect(Collectors.toList());
+	}
+
+	public void OnTick(final int tick)
 	{
 		if (Statuses.Debug)
 			LogCraft.Log("Updating...", player.getName(), "# of ", statuses.size());
@@ -201,13 +213,18 @@ public class StatusPlayer
 		}
 	}
 
-	public void LoadStatus(StatusInstance instance)
+	public void LoadStatus(final StatusInstance instance)
 	{
 		if (!instanceMap.containsKey(instance.status))
 			instanceMap.put(instance.status, new ArrayList<>());
 
 		AddInstance(instance);
 	}
+
+	public boolean HasStatus(final StatusBase status) {
+		return true;
+	}
+
 
 	@Override public String toString() {
 		return MessageFormat.format("StatusPlayer:{0}, Size: {1}", player.getName(), statuses.size());
