@@ -20,8 +20,9 @@ import java.io.File;
 
 public class Statuses extends JavaPlugin
 {
-
 	private static Statuses m_singleton;
+
+	public static final String SQL_USER_TBL = "status_users";
 
 	public static boolean Debug;
 

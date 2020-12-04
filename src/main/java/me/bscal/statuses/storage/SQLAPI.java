@@ -1,27 +1,21 @@
 package me.bscal.statuses.storage;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.text.MessageFormat;
-
-import org.bukkit.entity.Player;
-
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.core.StatusInstance;
 import me.bscal.statuses.core.StatusPlayer;
+import org.bukkit.entity.Player;
+
+import java.sql.*;
+import java.text.MessageFormat;
 
 public class SQLAPI
 {
-
 	Connection c;
 	PreparedStatement stmt;
 
-	private boolean m_debug;
-	private boolean m_mysqlEnabled;
+	private final boolean m_debug;
+	private final boolean m_mysqlEnabled;
 
 	public SQLAPI(final boolean debug, final boolean mysqlEnabled)
 	{
@@ -31,7 +25,6 @@ public class SQLAPI
 
 	public void Connect()
 	{
-
 		try
 		{
 			if (c != null)
@@ -78,8 +71,9 @@ public class SQLAPI
 	{
 		try
 		{
-			if (c != null || c.isClosed())
-				c.close();
+			if (c == null || c.isClosed())
+				return;
+			c.close();
 		}
 		catch (SQLException e)
 		{
@@ -209,10 +203,7 @@ public class SQLAPI
 			{
 				stmt.setObject(i + 1, vals[i]);
 			}
-
-			ResultSet rs = stmt.executeQuery();
-
-			return rs;
+			return stmt.executeQuery();
 		}
 		catch (SQLException e)
 		{
@@ -260,7 +251,7 @@ public class SQLAPI
 	 * @param table - tables name.
 	 * @param col   - column to update. Only supports 1 column.
 	 * @param val   - object to update column with.
-	 * @param p
+	 * @param p		- player
 	 */
 	public void UpdateVar(String table, String col, Object val, Player p)
 	{
@@ -297,7 +288,7 @@ public class SQLAPI
 		String sql = MessageFormat.format("UPDATE {0} SET {1}=? WHERE {2}", table, col, where);
 		try
 		{
-			PreparedStatement stmt = c.prepareStatement(sql);
+			stmt = c.prepareStatement(sql);
 			stmt.setObject(1, updatedVal);
 			for (int i = 1; i < whereVals.length + 1; i++)
 			{
