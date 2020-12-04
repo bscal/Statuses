@@ -6,6 +6,7 @@ import java.util.List;
 
 import me.bscal.logcraft.LogLevel;
 import me.bscal.statuses.effects.TickEffect;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import me.bscal.logcraft.LogCraft;
@@ -14,6 +15,7 @@ import me.bscal.statuses.core.StatusInstance;
 import me.bscal.statuses.core.StatusPlayer;
 import me.bscal.statuses.effects.StatusEffect;
 import me.bscal.statuses.triggers.StatusTrigger;
+import org.bukkit.inventory.ItemStack;
 
 /***
  *
@@ -31,9 +33,12 @@ public abstract class StatusBase
 	public static final float TICKS_PER_SECOND = 20;
 
 	public final String name;
-	public final StatusGroup group;
+	public final String group;
 	public final List<StatusEffect> effects = new ArrayList<>();
 	public final List<StatusTrigger> triggers = new ArrayList<>();
+
+	public String desc;
+	public ItemStack icon;
 
 	/**
 	 * Number of ticks to wait before an Update Tick will occur
@@ -83,12 +88,12 @@ public abstract class StatusBase
 	 */
 	public float maxDuration = NO_MAX_DURATION;
 
-	public StatusBase(final String name, final StatusGroup group, final float duration)
+	public StatusBase(final String name, final String group, final float duration)
 	{
 		this(name, group, duration, (int) TICKS_PER_SECOND);
 	}
 
-	public StatusBase(final String name, final StatusGroup group, final float duration, final int ticksPerUpdate)
+	public StatusBase(final String name, final String group, final float duration, final int ticksPerUpdate)
 	{
 		this.name = name;
 		this.group = group;
@@ -210,6 +215,11 @@ public abstract class StatusBase
 
 	public void HandleStack(StatusInstance statusInstance)
 	{
+	}
+
+	public void CreateItemStack()
+	{
+		icon = new ItemStack(Material.AIR);
 	}
 
 	@Override public boolean equals(Object other)
