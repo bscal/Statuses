@@ -70,6 +70,12 @@ public class StatusManager implements Listener
 		return players.get(p);
 	}
 
+	/**
+	 * Registers a trigger. Can handle registering both event triggers (Triggers linked to an event) or
+	 * manual triggers.
+	 * @param trigger - Trigger
+	 * @return The StatusTrigger
+	 */
 	public StatusTrigger RegisterTrigger(final StatusTrigger trigger)
 	{
 		if (trigger.IsEventTrigger(trigger.eventClass))
@@ -101,6 +107,11 @@ public class StatusManager implements Listener
 		return trigger;
 	}
 
+	/**
+	 * Registers a Status as StatusBase
+	 * @param status - status
+	 * @param trigger - trigger
+	 */
 	public void Register(final StatusBase status, final StatusTrigger trigger)
 	{
 		if (status == null || trigger == null)
@@ -230,6 +241,12 @@ public class StatusManager implements Listener
 		return effects.size();
 	}
 
+	/**
+	 * Attempts to apply a status to a play from a trigger.
+	 * @param trigger - Trigger linked to status
+	 * @param p - Player to apply status to
+	 * @return true if applied
+	 */
 	public boolean TriggerPlayer(final PlayerTrigger trigger, final Player p)
 	{
 		if (!triggerToStatus.containsKey(trigger))

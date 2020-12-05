@@ -14,15 +14,30 @@ import me.bscal.statuses.storage.DBObject;
 public class StatusInstance implements DBObject
 {
 
+	/**
+	 * Usually the nanoTime() of when the instance was create
+	 */
 	public long id;
+	/**
+	 * Contains info on the Player
+	 */
 	public StatusPlayer sPlayer;
+	/**
+	 * The status this instances was created from
+	 */
 	public StatusBase status;
+	/**
+	 * A unique key. Defaults to an empty string if unused
+	 */
 	public String key;
 
 	public float duration;
 	public int stackCount;
 
 	public boolean hasStarted;
+	/**
+	 * Used to mark if the status should be removed naturally.
+	 */
 	public boolean shouldRemove;
 
 	public StatusInstance(final StatusPlayer p)
