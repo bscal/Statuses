@@ -4,6 +4,7 @@ import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.core.StatusInstance;
 import me.bscal.statuses.core.StatusPlayer;
+import org.apache.commons.lang.StringUtils;
 import org.bukkit.entity.Player;
 
 import java.sql.*;
@@ -39,8 +40,8 @@ public class SQLAPI
 				String pass = Statuses.Get().getConfig().getString("mysql.password");
 
 				Class.forName("com.mysql.jdbc.Driver");
-				c = DriverManager.getConnection(MessageFormat.format("jdbc:mysql://{0}:{1}/{2}", host, port, db), user,
-						pass);
+				c = DriverManager
+						.getConnection(MessageFormat.format("jdbc:mysql://{0}:{1}/{2}", host, port, db), user, pass);
 			}
 			else
 			{
@@ -52,11 +53,8 @@ public class SQLAPI
 			{
 				Log("[ ok ] Connected to database success!");
 
-				stmt = c.prepareStatement("CREATE TABLE IF NOT EXISTS user_statuses ("
-						+ "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " + "`status_id` BIGINT NOT NULL, "
-						+ "`UUID` VARCHAR(36) NOT NULL, " + "`name` VARCHAR(32) NOT NULL, "
-						+ "`key` VARCHAR(64) NOT NULL, " + "`duration` INTEGER NOT NULL, "
-						+ "`stacks` TINYINT NOT NULL default 0);");
+				stmt = c.prepareStatement(
+						"CREATE TABLE IF NOT EXISTS user_statuses (" + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " + "`status_id` BIGINT NOT NULL, " + "`UUID` VARCHAR(36) NOT NULL, " + "`name` VARCHAR(32) NOT NULL, " + "`key` VARCHAR(64) NOT NULL, " + "`duration` INTEGER NOT NULL, " + "`stacks` TINYINT NOT NULL default 0);");
 				stmt.executeUpdate();
 				stmt.close();
 			}
@@ -82,7 +80,7 @@ public class SQLAPI
 	}
 
 	/*-
-	 * ************************************* 
+	 * *************************************
 	 * * Saving and Loading Status Players *
 	 * *************************************
 	 */
@@ -119,10 +117,39 @@ public class SQLAPI
 
 	/*-
 	 * ************************
+	 * * SQL Create functions *
+	 * ************************
+	 */
+
+	public void Create(String table, boolean autoID, DBTable... objs)
+	{
+		String sql = MessageFormat.format("CREATE TABLE IF NOT EXISTS {0} ({1}{2});", table,
+				(autoID) ? "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " : "", StringUtils.join(objs, ", "));
+		try
+		{
+			stmt = c.prepareStatement(sql);
+			stmt.executeUpdate();
+			stmt.close();
+		}
+		catch (SQLException throwables)
+		{
+			throwables.printStackTrace();
+		}
+	}
+
+
+	/*-
+	 * ************************
 	 * * SQL Insert functions *
 	 * ************************
 	 */
 
+	/**
+	 * Inserts Player's UUID into table
+	 *
+	 * @param table - SQL table to use
+	 * @param p     - Player to store
+	 */
 	public void Insert(String table, Player p)
 	{
 		String sql = MessageFormat.format("INSERT INTO {0} (UUID) VALUES (?);", table);
@@ -144,7 +171,7 @@ public class SQLAPI
 	/**
 	 * Inserts columns into tables with values. The VALUES string will be generated
 	 * for you based of vals size.
-	 * 
+	 *
 	 * @param table - table name.
 	 * @param cols  - column string. Should be sql format. Ie: "UUID, name"
 	 * @param vals  - objects to insert. Should be in order.
@@ -178,6 +205,23 @@ public class SQLAPI
 		}
 	}
 
+	public void Insert(String table, DBTable... columns)
+	{
+		String sql = MessageFormat.format("INSERT INTO {0} ({1}) VALUES ({2});", table, DBUtils.JoinTable(columns),
+				DBUtils.PrepareValues(columns.length));
+		try
+		{
+			stmt = c.prepareStatement(sql);
+			for (int i = 0; i < columns.length; i++)
+				stmt.setObject(i + 1, columns[i]);
+			stmt.executeUpdate();
+		}
+		catch (SQLException throwables)
+		{
+			throwables.printStackTrace();
+		}
+	}
+
 	/*-
 	 * ************************
 	 * * SQL Select functions *
@@ -187,7 +231,7 @@ public class SQLAPI
 	/**
 	 * Returns ResultSet. *Important* You will want to format the where string for a
 	 * prepared statement. For example "UUID = ? AND name = ?"
-	 * 
+	 *
 	 * @param table - Table name to select from.
 	 * @param where - Where string for the sql statement.
 	 * @param vals  - All the parameters *IN ORDER* for the where statement.
@@ -214,7 +258,7 @@ public class SQLAPI
 
 	/**
 	 * Returns ResultSet from the Player's UUID only.
-	 * 
+	 *
 	 * @param table  - tables name.
 	 * @param column - Column(s) name(s), or "*".
 	 * @param p      - Player to search for.
@@ -240,18 +284,18 @@ public class SQLAPI
 	}
 
 	/*-
-	 * ************************ 
-	 * * SQL Update functions * 
+	 * ************************
+	 * * SQL Update functions *
 	 * ************************
 	 */
 
 	/**
 	 * Updates value by player uuid.
-	 * 
+	 *
 	 * @param table - tables name.
 	 * @param col   - column to update. Only supports 1 column.
 	 * @param val   - object to update column with.
-	 * @param p		- player
+	 * @param p     - player
 	 */
 	public void UpdateVar(String table, String col, Object val, Player p)
 	{
@@ -274,7 +318,7 @@ public class SQLAPI
 
 	/**
 	 * Updates a column with a objects value using where string in the statement.
-	 * 
+	 *
 	 * @param table      - table name.
 	 * @param col        - column name. Only 1.
 	 * @param updatedVal - updated value.
@@ -306,7 +350,7 @@ public class SQLAPI
 	}
 
 	/*-
-	 * ************************ 
+	 * ************************
 	 * * SQL Delete functions *
 	 * ************************
 	 */
@@ -331,7 +375,7 @@ public class SQLAPI
 
 	/**
 	 * Deletes rows based on where clause.
-	 * 
+	 *
 	 * @param table - table name.
 	 * @param where - where clause. As sql prepared statement: "UUID = ? AND name =
 	 *              ?"
