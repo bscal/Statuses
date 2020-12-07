@@ -22,4 +22,9 @@ public class DBKeyValue
 		return colVal.toString();
 	}
 
+	public String ToPrepared()
+	{
+		return colName + "=?";
+	}
+
 }

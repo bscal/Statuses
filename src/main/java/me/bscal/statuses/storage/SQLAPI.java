@@ -2,10 +2,7 @@ package me.bscal.statuses.storage;
 
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.Statuses;
-import me.bscal.statuses.core.StatusInstance;
-import me.bscal.statuses.core.StatusPlayer;
 import org.apache.commons.lang.StringUtils;
-import org.bukkit.entity.Player;
 
 import java.sql.*;
 import java.text.MessageFormat;
@@ -81,47 +78,18 @@ public class SQLAPI
 	}
 
 	/*-
-	 * *************************************
-	 * * Saving and Loading Status Players *
-	 * *************************************
-	 */
-
-	public void LoadPlayer(String table, StatusPlayer sp)
-	{
-		String sql = MessageFormat.format("SELECT * FROM {0} WHERE UUID = ?;", table);
-		try
-		{
-			stmt = c.prepareStatement(sql);
-			stmt.setString(1, sp.player.getUniqueId().toString());
-			ResultSet rs = stmt.executeQuery();
-			while (rs.next())
-			{
-				sp.LoadStatus((StatusInstance) new StatusInstance(sp).ToObject(rs));
-			}
-			if (m_debug)
-				Log("[ LoadPlayer ]", sp.player.getName());
-			Statuses.Get().GetDB().Delete(table, sp.player);
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-	}
-
-	public void SavePlayer(String table, StatusPlayer sp)
-	{
-		if (m_debug)
-			Log("[ SavePlayer ]", sp.statuses.size(), sp.player.getName());
-
-		sp.RemoveAllAndSave(table);
-	}
-
-	/*-
 	 * ************************
 	 * * SQL Create functions *
 	 * ************************
 	 */
 
+	/**
+	 * Used for creating tables.
+	 *
+	 * @param table  - Name of table
+	 * @param autoID - Will automatically insert id primary key
+	 * @param objs   - DBTable objects representing columns.
+	 */
 	public void Create(String table, boolean autoID, DBTable... objs)
 	{
 		String sql = MessageFormat.format("CREATE TABLE IF NOT EXISTS {0} ({1}{2});", table,
@@ -147,49 +115,16 @@ public class SQLAPI
 	 */
 
 	/**
-	 * Inserts Player's UUID into table
+	 * Creates a INSERT prepared statement
 	 *
-	 * @param table - SQL table to use
-	 * @param p     - Player to store
-	 */
-	public void Insert(String table, Player p)
-	{
-		String sql = MessageFormat.format("INSERT INTO {0} (UUID) VALUES (?);", table);
-		try
-		{
-			stmt = c.prepareStatement(sql);
-			stmt.setString(1, p.getUniqueId().toString());
-			int count = stmt.executeUpdate();
-			if (m_debug)
-				Log("[ Inserting ] Updates: ", count, table);
-			stmt.close();
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * Inserts columns into tables with values. The VALUES string will be generated
-	 * for you based of vals size.
-	 *
-	 * @param table - table name.
-	 * @param cols  - column string. Should be sql format. Ie: "UUID, name"
-	 * @param vals  - objects to insert. Should be in order.
+	 * @param table - table name
+	 * @param cols  - column names in sql syntax
+	 * @param vals  - values to insert
 	 */
 	public void Insert(String table, String cols, Object[] vals)
 	{
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < vals.length; i++)
-		{
-			if (i == vals.length - 1)
-				sb.append("?");
-			else
-				sb.append("?,");
-		}
-		String sql = MessageFormat
-				.format("INSERT INTO {0} ({1}) VALUES ({2});", table, cols, sb.toString());
+		String sql = MessageFormat.format("INSERT INTO {0} ({1}) VALUES ({2});", table, cols,
+				DBUtils.PrepareValues(vals.length));
 		try
 		{
 			PreparedStatement stmt = c.prepareStatement(sql);
@@ -197,9 +132,7 @@ public class SQLAPI
 			{
 				stmt.setObject(i + 1, vals[i]);
 			}
-			int count = stmt.executeUpdate();
-			if (m_debug)
-				Log("[ Inserting ] Updates: ", count, table, cols);
+			stmt.executeUpdate();
 			stmt.close();
 		}
 		catch (SQLException e)
@@ -208,10 +141,10 @@ public class SQLAPI
 		}
 	}
 
-	public void Insert(String table, DBTable... columns)
+	public void Insert(String table, DBKeyValue... columns)
 	{
 		String sql = MessageFormat
-				.format("INSERT INTO {0} ({1}) VALUES ({2});", table, DBUtils.JoinTable(columns),
+				.format("INSERT INTO {0} ({1}) VALUES ({2});", table, DBUtils.JoinKeys(columns),
 						DBUtils.PrepareValues(columns.length));
 		try
 		{
@@ -261,23 +194,19 @@ public class SQLAPI
 	}
 
 	/**
-	 * Returns ResultSet from the Player's UUID only.
-	 *
-	 * @param table  - tables name.
-	 * @param column - Column(s) name(s), or "*".
-	 * @param p      - Player to search for.
+	 * Returns the ResultSet of 1 column by player's uuid.
 	 */
-	public ResultSet SelectVar(String table, String column, Player p)
+	public ResultSet SelectVar(String table, String column, String key)
 	{
 		String sql = MessageFormat.format("SELECT {0} FROM {1} WHERE UUID = ?;", column, table);
 		try
 		{
 			stmt = c.prepareStatement(sql);
-			stmt.setString(1, p.getUniqueId().toString());
+			stmt.setString(1, key);
 			ResultSet rs = stmt.executeQuery();
 			if (m_debug)
 				Log("[ SelectVar ] Size: ", rs.getFetchSize(), " | Var: ", column, " | Player: ",
-						p.getName());
+						key);
 			if (rs.next())
 				return rs;
 		}
@@ -290,8 +219,8 @@ public class SQLAPI
 
 	public ResultSet Select(String table, DBSelect select)
 	{
-		String sql = MessageFormat.format("SELECT {0} FROM {1} WHERE {2};", select.columns, table, DBUtils.KVPrepare(
-				select.wheres));
+		String sql = MessageFormat.format("SELECT {0} FROM {1} WHERE {2};", select.columns, table,
+				DBUtils.KVPrepare(select.wheres));
 		try
 		{
 			stmt = c.prepareStatement(sql);
@@ -315,24 +244,19 @@ public class SQLAPI
 	 */
 
 	/**
-	 * Updates value by player uuid.
-	 *
-	 * @param table - tables name.
-	 * @param col   - column to update. Only supports 1 column.
-	 * @param val   - object to update column with.
-	 * @param p     - player
+	 * Updates 1 column with the value where the player's uuid matches
 	 */
-	public void UpdateVar(String table, String col, Object val, Player p)
+	public void UpdateVar(String table, String col, Object val, String key)
 	{
 		String sql = MessageFormat.format("UPDATE {0} SET {1}=? where UUID = ?", table, col);
 		try
 		{
 			stmt = c.prepareStatement(sql);
 			stmt.setObject(1, val);
-			stmt.setString(2, p.getUniqueId().toString());
+			stmt.setString(2, key);
 			int count = stmt.executeUpdate();
 			if (m_debug)
-				Log("[ SelectVar ] Updates: ", count, " | Player: ", p.getName());
+				Log("[ SelectVar ] Updates: ", count, " | Player: ", key);
 			stmt.close();
 		}
 		catch (SQLException e)
@@ -406,45 +330,16 @@ public class SQLAPI
 	 * ************************
 	 */
 
-	public void Delete(String table, Player p)
+	public void Delete(String table, String key)
 	{
 		String sql = MessageFormat.format("DELETE FROM {0} where UUID = ?", table);
 		try
 		{
 			stmt = c.prepareStatement(sql);
-			stmt.setString(1, p.getUniqueId().toString());
+			stmt.setString(1, key);
 			stmt.executeUpdate();
 			if (m_debug)
-				Log("[ Delete ] Deleted player", p.getName());
-			stmt.close();
-		}
-		catch (SQLException e)
-		{
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * Deletes rows based on where clause.
-	 *
-	 * @param table - table name.
-	 * @param where - where clause. As sql prepared statement: "UUID = ? AND name =
-	 *              ?"
-	 * @param vals  - updated values in order.
-	 */
-	public void DeleteWhere(String table, String where, Object... vals)
-	{
-		String sql = MessageFormat.format("DELETE FROM {0} WHERE {1}", table, where);
-		try
-		{
-			stmt = c.prepareStatement(sql);
-			for (int i = 0; i < vals.length; i++)
-			{
-				stmt.setObject(i + 1, vals[i]);
-			}
-			stmt.executeUpdate();
-			if (m_debug)
-				Log("[ Delete ] Deleted player", vals);
+				Log("[ Delete ] Deleted player", key);
 			stmt.close();
 		}
 		catch (SQLException e)

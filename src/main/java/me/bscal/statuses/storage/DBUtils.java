@@ -15,6 +15,11 @@ public final class DBUtils
 		return new DBKeyValue("UUID", p.getUniqueId().toString());
 	}
 
+	public static DBKeyValue[] PlayerKVArray(final Player p)
+	{
+		return new DBKeyValue[] { new DBKeyValue("UUID", p.getUniqueId().toString()) };
+	}
+
 	public static String JoinKeys(DBKeyValue[] kv)
 	{
 		StringBuilder sb = new StringBuilder();

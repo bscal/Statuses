@@ -3,6 +3,7 @@ package me.bscal.statuses.core;
 import me.bscal.logcraft.LogCraft;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.statuses.StatusBase;
+import me.bscal.statuses.storage.BukkitSQLAPI;
 import org.bukkit.entity.Player;
 
 import java.text.MessageFormat;
@@ -165,15 +166,10 @@ public final class StatusPlayer
 			if (inst != null && inst.status.isPersistent)
 			{
 				inst = statuses.get(i);
-				SaveInstance(inst, table);
+				BukkitSQLAPI.SaveInstance(inst, table);
 				RemoveStatus(inst, i);
 			}
 		}
-	}
-
-	public void SaveInstance(final StatusInstance instance, final String table)
-	{
-		Statuses.Get().GetDB().Insert(table, instance.GetColumns(), instance.GetValues());
 	}
 
 	public void Destroy()

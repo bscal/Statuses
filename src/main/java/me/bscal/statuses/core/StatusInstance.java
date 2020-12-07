@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.UUID;
 
+import me.bscal.statuses.storage.DBKeyValue;
 import org.bukkit.Bukkit;
 
 import me.bscal.statuses.Statuses;
@@ -55,7 +56,8 @@ public class StatusInstance implements DBObject
 		this(sp, status, duration, "");
 	}
 
-	public StatusInstance(final StatusPlayer sp, final StatusBase status, final float duration, final String key)
+	public StatusInstance(final StatusPlayer sp, final StatusBase status, final float duration,
+			final String key)
 	{
 		this.id = System.nanoTime();
 		this.sPlayer = sp;
@@ -64,7 +66,8 @@ public class StatusInstance implements DBObject
 		this.key = key;
 	}
 
-	@Override public boolean equals(Object other)
+	@Override
+	public boolean equals(Object other)
 	{
 		if (this == other)
 			return true;
@@ -73,26 +76,30 @@ public class StatusInstance implements DBObject
 			return false;
 
 		StatusInstance otherInst = (StatusInstance) other;
-		return this.id == otherInst.id && this.status.equals(otherInst.status) && this.key.equals(otherInst.key);
+		return this.id == otherInst.id && this.status.equals(otherInst.status) && this.key
+				.equals(otherInst.key);
 	}
 
-	@Override public String toString()
+	@Override
+	public String toString()
 	{
 		return MessageFormat.format("StatusInstance[{0}::{1}::{2}]", status.name, key, id);
 	}
 
-	@Override public String GetColumns()
+	@Override
+	public DBKeyValue[] GetColumns()
 	{
-		return "UUID,status_id,name,key,duration,stacks";
-	}
-
-	@Override public Object[] GetValues()
-	{
-		return new Object[] { sPlayer.player.getUniqueId().toString(), id, status.name, key, duration, stackCount
+		return new DBKeyValue[] { new DBKeyValue("UUID", sPlayer.player.getUniqueId().toString()),
+				new DBKeyValue("status_id", id), new DBKeyValue("name", status.name),
+				new DBKeyValue("key", key), new DBKeyValue("duration", duration),
+				new DBKeyValue("stacks", stackCount),
 		};
 	}
 
-	@Override public Object ToObject(ResultSet rs)
+	;
+
+	@Override
+	public Object ToObject(ResultSet rs)
 	{
 		try
 		{

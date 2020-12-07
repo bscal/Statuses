@@ -6,6 +6,7 @@ import me.bscal.statuses.Statuses;
 import me.bscal.statuses.effects.StatusEffect;
 import me.bscal.statuses.effects.TriggerEffect;
 import me.bscal.statuses.statuses.StatusBase;
+import me.bscal.statuses.storage.BukkitSQLAPI;
 import me.bscal.statuses.triggers.PlayerTrigger;
 import me.bscal.statuses.triggers.StatusTrigger;
 import org.bukkit.Bukkit;
@@ -52,14 +53,14 @@ public class StatusManager implements Listener
 		if (players.containsKey(sPlayer.player))
 			return;
 
-		Statuses.Get().GetDB().LoadPlayer(Statuses.SQL_USER_TBL, sPlayer);
+		BukkitSQLAPI.LoadPlayer(Statuses.SQL_USER_TBL, sPlayer);
 		players.put(sPlayer.player, sPlayer);
 	}
 
 	public void RemovePlayer(StatusPlayer sPlayer, final boolean save)
 	{
 		if (save)
-			Statuses.Get().GetDB().SavePlayer(Statuses.SQL_USER_TBL, sPlayer);
+			BukkitSQLAPI.SavePlayer(Statuses.SQL_USER_TBL, sPlayer);
 		players.remove(sPlayer.player);
 		sPlayer.Destroy();
 		sPlayer = null;
