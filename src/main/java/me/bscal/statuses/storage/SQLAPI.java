@@ -40,8 +40,9 @@ public class SQLAPI
 				String pass = Statuses.Get().getConfig().getString("mysql.password");
 
 				Class.forName("com.mysql.jdbc.Driver");
-				c = DriverManager
-						.getConnection(MessageFormat.format("jdbc:mysql://{0}:{1}/{2}", host, port, db), user, pass);
+				c = DriverManager.getConnection(
+						MessageFormat.format("jdbc:mysql://{0}:{1}/{2}", host, port, db), user,
+						pass);
 			}
 			else
 			{
@@ -124,7 +125,8 @@ public class SQLAPI
 	public void Create(String table, boolean autoID, DBTable... objs)
 	{
 		String sql = MessageFormat.format("CREATE TABLE IF NOT EXISTS {0} ({1}{2});", table,
-				(autoID) ? "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " : "", StringUtils.join(objs, ", "));
+				(autoID) ? "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " : "",
+				StringUtils.join(objs, ", "));
 		try
 		{
 			stmt = c.prepareStatement(sql);
@@ -186,7 +188,8 @@ public class SQLAPI
 			else
 				sb.append("?,");
 		}
-		String sql = MessageFormat.format("INSERT INTO {0} ({1}) VALUES ({2});", table, cols, sb.toString());
+		String sql = MessageFormat
+				.format("INSERT INTO {0} ({1}) VALUES ({2});", table, cols, sb.toString());
 		try
 		{
 			PreparedStatement stmt = c.prepareStatement(sql);
@@ -207,8 +210,9 @@ public class SQLAPI
 
 	public void Insert(String table, DBTable... columns)
 	{
-		String sql = MessageFormat.format("INSERT INTO {0} ({1}) VALUES ({2});", table, DBUtils.JoinTable(columns),
-				DBUtils.PrepareValues(columns.length));
+		String sql = MessageFormat
+				.format("INSERT INTO {0} ({1}) VALUES ({2});", table, DBUtils.JoinTable(columns),
+						DBUtils.PrepareValues(columns.length));
 		try
 		{
 			stmt = c.prepareStatement(sql);
@@ -272,9 +276,30 @@ public class SQLAPI
 			stmt.setString(1, p.getUniqueId().toString());
 			ResultSet rs = stmt.executeQuery();
 			if (m_debug)
-				Log("[ SelectVar ] Size: ", rs.getFetchSize(), " | Var: ", column, " | Player: ", p.getName());
+				Log("[ SelectVar ] Size: ", rs.getFetchSize(), " | Var: ", column, " | Player: ",
+						p.getName());
 			if (rs.next())
 				return rs;
+		}
+		catch (SQLException e)
+		{
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public ResultSet Select(String table, DBSelect select)
+	{
+		String sql = MessageFormat.format("SELECT {0} FROM {1} WHERE {2};", select.columns, table, DBUtils.KVPrepare(
+				select.wheres));
+		try
+		{
+			stmt = c.prepareStatement(sql);
+
+			for (int i = 0; i < select.wheres.length; i++)
+				stmt.setObject(i + 1, select.wheres[i].colVal);
+
+			return stmt.executeQuery();
 		}
 		catch (SQLException e)
 		{
@@ -327,7 +352,8 @@ public class SQLAPI
 	 * @param whereVals  - objects to insert into where caluse for prepared
 	 *                   statement.
 	 */
-	public void UpdateVarWhere(String table, String col, Object updatedVal, String where, Object... whereVals)
+	public void UpdateVarWhere(String table, String col, Object updatedVal, String where,
+			Object... whereVals)
 	{
 		String sql = MessageFormat.format("UPDATE {0} SET {1}=? WHERE {2}", table, col, where);
 		try
@@ -346,6 +372,31 @@ public class SQLAPI
 		catch (SQLException e)
 		{
 			e.printStackTrace();
+		}
+	}
+
+	public void Update(String table, DBUpdate columns)
+	{
+		String SET = DBUtils.KVPrepare(columns.updates);
+		String WHERE = DBUtils.KVPrepare(columns.wheres);
+		String sql = MessageFormat.format("UPDATE {0} SET {1} WHERE {2}", table, SET, WHERE);
+
+		try
+		{
+			stmt = c.prepareStatement(sql);
+
+			int updatesLength = columns.updates.length;
+			for (int i = 0; i < updatesLength; i++)
+				stmt.setObject(i + 1, columns.updates[i].colVal);
+
+			for (int i = updatesLength; i < columns.wheres.length + updatesLength; i++)
+				stmt.setObject(i + 1, columns.wheres[i].colVal);
+
+			stmt.executeUpdate();
+		}
+		catch (SQLException throwables)
+		{
+			throwables.printStackTrace();
 		}
 	}
 
@@ -399,6 +450,26 @@ public class SQLAPI
 		catch (SQLException e)
 		{
 			e.printStackTrace();
+		}
+	}
+
+	public void Delete(String table, DBUpdate columns)
+	{
+		String sql = MessageFormat
+				.format("DELETE FROM {0} WHERE {1}", table, DBUtils.KVPrepare(columns.wheres));
+
+		try
+		{
+			stmt = c.prepareStatement(sql);
+
+			for (int i = 0; i < columns.wheres.length; i++)
+				stmt.setObject(i + 1, columns.wheres[i].colVal);
+
+			stmt.executeUpdate();
+		}
+		catch (SQLException throwables)
+		{
+			throwables.printStackTrace();
 		}
 	}
 

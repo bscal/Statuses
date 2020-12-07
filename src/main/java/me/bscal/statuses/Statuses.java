@@ -65,6 +65,7 @@ public class Statuses extends JavaPlugin
 		LogCraft.Log("StatusManager Loaded. Trigger count:", m_sm.TriggerCount(), "Status Count:", m_sm.StatusCount(),
 				"Effect Count:", m_sm.EffectsCount());
 		m_sm.StartRunnable();
+
 	}
 
 	public void onDisable()
