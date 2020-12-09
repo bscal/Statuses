@@ -146,11 +146,12 @@ public class SQLAPI
 		String sql = MessageFormat
 				.format("INSERT INTO {0} ({1}) VALUES ({2});", table, DBUtils.JoinKeys(columns),
 						DBUtils.PrepareValues(columns.length));
+		Log(sql);
 		try
 		{
 			stmt = c.prepareStatement(sql);
 			for (int i = 0; i < columns.length; i++)
-				stmt.setObject(i + 1, columns[i]);
+				stmt.setObject(i + 1, columns[i].colVal);
 			stmt.executeUpdate();
 		}
 		catch (SQLException throwables)
@@ -370,6 +371,6 @@ public class SQLAPI
 
 	private void Log(Object... msg)
 	{
-		LogCraft.Log(msg);
+		Statuses.Logger.Log(msg);
 	}
 }

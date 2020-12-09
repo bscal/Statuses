@@ -1,6 +1,5 @@
 package me.bscal.statuses.core;
 
-import me.bscal.logcraft.LogCraft;
 import me.bscal.logcraft.LogLevel;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.effects.StatusEffect;
@@ -74,6 +73,7 @@ public class StatusManager implements Listener
 	/**
 	 * Registers a trigger. Can handle registering both event triggers (Triggers linked to an event) or
 	 * manual triggers.
+	 *
 	 * @param trigger - Trigger
 	 * @return The StatusTrigger
 	 */
@@ -103,14 +103,15 @@ public class StatusManager implements Listener
 
 		triggers.add(trigger);
 
-		LogCraft.Log("[ ok ] Registering trigger: ", trigger.getClass().getSimpleName());
+		Statuses.Logger.Log("[ ok ] Registering trigger: ", trigger.getClass().getSimpleName());
 
 		return trigger;
 	}
 
 	/**
 	 * Registers a Status as StatusBase
-	 * @param status - status
+	 *
+	 * @param status  - status
 	 * @param trigger - trigger
 	 */
 	public void Register(final StatusBase status, final StatusTrigger trigger)
@@ -127,13 +128,14 @@ public class StatusManager implements Listener
 		}
 		else if (triggerToStatus.get(trigger).contains(status))
 		{
-			LogCraft.LogErr("Failed to register. Error: Status already registered.");
+			Statuses.Logger.LogErr("Failed to register. Error: Status already registered.");
 			return;
 		}
 
 		triggerToStatus.get(trigger).add(status);
 
-		LogCraft.Log("[ ok ] Registering status: ", status.name, trigger.getClass().getSimpleName());
+		Statuses.Logger.Log("[ ok ] Registering status: ", status.name,
+				trigger.getClass().getSimpleName());
 	}
 
 	public void RegisterEffect(final StatusEffect effect)
@@ -145,7 +147,7 @@ public class StatusManager implements Listener
 	{
 		effects.put(name, effect);
 
-		LogCraft.Log("[ ok ] Registering effect: ", name);
+		Statuses.Logger.Log("[ ok ] Registering effect: ", name);
 	}
 
 	/**
@@ -157,12 +159,12 @@ public class StatusManager implements Listener
 	{
 		if (instance == null)
 		{
-			LogCraft.LogErr("[ AddTriggerEffect] Instance or effects were null.");
+			Statuses.Logger.LogErr("[ AddTriggerEffect] Instance or effects were null.");
 			return;
 		}
 
-		if (Statuses.Debug)
-			LogCraft.Log("Adding TriggerEffect", instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("Adding TriggerEffect", instance.status.name);
 
 		for (var trig : instance.status.triggers)
 		{
@@ -180,8 +182,8 @@ public class StatusManager implements Listener
 		if (instance == null)
 			return;
 
-		if (Statuses.Debug)
-			LogCraft.Log("Removing TriggerEffect", instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("Removing TriggerEffect", instance.status.name);
 
 		for (int i = 0; i < instance.status.triggers.size(); i++)
 		{
@@ -214,15 +216,18 @@ public class StatusManager implements Listener
 				return triggers.get(i);
 		}
 
-		LogCraft.LogErr("Trying to get Trigger (" + name + ") but does not exist.");
+		Statuses.Logger.LogErr("Trying to get Trigger (" + name + ") but does not exist.");
 
 		return null;
 	}
 
 	public StatusEffect GetEffect(final String name)
 	{
-		if (effects.containsKey(name) && LogLevel.Is(LogLevel.INFO_ONLY))
-			LogCraft.LogErr("[ error ] No registered effect named " + name);
+		if (!effects.containsKey(name))
+		{
+			Statuses.Logger.LogErr("[ error ] No registered effect named " + name);
+			return null;
+		}
 
 		return effects.get(name);
 	}
@@ -244,8 +249,9 @@ public class StatusManager implements Listener
 
 	/**
 	 * Attempts to apply a status to a play from a trigger.
+	 *
 	 * @param trigger - Trigger linked to status
-	 * @param p - Player to apply status to
+	 * @param p       - Player to apply status to
 	 * @return true if applied
 	 */
 	public boolean TriggerPlayer(final PlayerTrigger trigger, final Player p)
@@ -261,16 +267,18 @@ public class StatusManager implements Listener
 				for (int i = 0; i < instance.status.effects.size(); i++)
 				{
 					if (instance.status.effects.get(i) instanceof TriggerEffect)
-						((TriggerEffect) instance.status.effects.get(i)).OnTrigger(instance, trigger);
+						((TriggerEffect) instance.status.effects.get(i))
+								.OnTrigger(instance, trigger);
 				}
 			}
 		}
 
 		for (var status : triggerToStatus.get(trigger))
 		{
-			if (Statuses.Debug)
-				LogCraft.Log("Trying to Apply status", status.name, trigger.name, p.getName(),
-						status.ShouldApply(trigger, p));
+			if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+				Statuses.Logger
+						.Log("Trying to Apply status", status.name, trigger.name, p.getName(),
+								status.ShouldApply(trigger, p));
 
 			if (status.ShouldApply(trigger, p))
 			{
@@ -284,13 +292,15 @@ public class StatusManager implements Listener
 		return false;
 	}
 
-	@EventHandler public void OnJoin(PlayerJoinEvent e)
+	@EventHandler
+	public void OnJoin(PlayerJoinEvent e)
 	{
 		StatusPlayer sPlayer = new StatusPlayer(e.getPlayer());
 		AddPlayer(sPlayer);
 	}
 
-	@EventHandler public void OnExit(PlayerQuitEvent e)
+	@EventHandler
+	public void OnExit(PlayerQuitEvent e)
 	{
 		StatusPlayer sPlayer = players.get(e.getPlayer());
 		RemovePlayer(sPlayer, true);
@@ -309,7 +319,7 @@ public class StatusManager implements Listener
 	{
 		var map = eventToTrigger.get(e.getClass());
 
-		LogCraft.LogMap(map);
+		Statuses.Logger.LogMap(map);
 
 		boolean handled = false;
 		for (List<StatusTrigger> triggers : map.values())
@@ -320,7 +330,8 @@ public class StatusManager implements Listener
 				if (trig.IsValid() && trig instanceof PlayerTrigger)
 				{
 					// If trigger should fire call TriggerPlayer to see if the status should be applied.
-					handled = TriggerPlayer((PlayerTrigger) trig, ((PlayerTrigger) trig).GetPlayer());
+					handled = TriggerPlayer((PlayerTrigger) trig,
+							((PlayerTrigger) trig).GetPlayer());
 					break;
 				}
 			}
@@ -329,7 +340,8 @@ public class StatusManager implements Listener
 		}
 	}
 
-	@EventHandler public void OnDeath(PlayerDeathEvent e)
+	@EventHandler
+	public void OnDeath(PlayerDeathEvent e)
 	{
 		StatusPlayer sp = players.get(e.getEntity());
 		for (int i = sp.statuses.size() - 1; i > -1; i--)
@@ -346,12 +358,14 @@ public class StatusManager implements Listener
 		HandleEvent(e);
 	}
 
-	@EventHandler public void OnEntityDamageByEntity(EntityDamageByEntityEvent e)
+	@EventHandler
+	public void OnEntityDamageByEntity(EntityDamageByEntityEvent e)
 	{
 		HandleEvent(e);
 	}
 
-	@EventHandler public void OnEntityDamage(EntityDamageEvent e)
+	@EventHandler
+	public void OnEntityDamage(EntityDamageEvent e)
 	{
 		if (e.getEntity() instanceof Player)
 			HandleEvent(e);

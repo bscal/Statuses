@@ -128,11 +128,11 @@ public abstract class StatusBase
 	{
 		if (instance.hasStarted && tick % ticksPerUpdate == 0 && instance.sPlayer.player.isOnline())
 		{
-			if (shouldBeAlive && !instance.sPlayer.player.isDead())
+			if (shouldBeAlive && instance.sPlayer.player.isDead())
 				return false;
 
-			if (Statuses.Debug)
-				LogCraft.Log("Status ", instance.status.name, " updating...");
+			if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+				Statuses.Logger.Log("Status ", instance.status.name, " updating...");
 
 			instance.duration -= TICKS_PER_SECOND / ticksPerUpdate;
 
@@ -154,32 +154,32 @@ public abstract class StatusBase
 
 	public void OnInitialize(StatusInstance instance)
 	{
-		if (LogLevel.Is(LogLevel.DEVELOPER))
-			LogCraft.Log("OnInitialized called. Status", instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("OnInitialized called. Status", instance.status.name);
 
 		effects.forEach((effect) -> effect.OnInitialize(instance));
 	}
 
 	public void OnCleanup(StatusInstance instance)
 	{
-		if (LogLevel.Is(LogLevel.DEVELOPER))
-			LogCraft.Log("OnCleanup called. Status", instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("OnCleanup called. Status", instance.status.name);
 
 		effects.forEach((effect) -> effect.OnCleanup(instance));
 	}
 
 	public void OnStart(StatusInstance instance)
 	{
-		if (LogLevel.Is(LogLevel.DEVELOPER))
-			LogCraft.Log("OnStart called. Status", instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("OnStart called. Status", instance.status.name);
 
 		effects.forEach((effect) -> effect.OnStart(instance));
 	}
 
 	public void OnEnd(StatusInstance instance)
 	{
-		if (LogLevel.Is(LogLevel.DEVELOPER))
-			LogCraft.Log("OnEnd called. Status", instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("OnEnd called. Status", instance.status.name);
 
 		effects.forEach((effect) -> effect.OnEnd(instance));
 
@@ -187,16 +187,16 @@ public abstract class StatusBase
 
 	public void OnDeath(StatusInstance instance)
 	{
-		if (LogLevel.Is(LogLevel.DEVELOPER))
-			LogCraft.Log("OnDeath called. Status", instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("OnDeath called. Status", instance.status.name);
 
 		effects.forEach((effect) -> effect.OnDeath(instance));
 	}
 
 	public void OnRespawn(StatusInstance instance)
 	{
-		if (LogLevel.Is(LogLevel.DEVELOPER))
-			LogCraft.Log("OnRespawn called. Status", instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("OnRespawn called. Status", instance.status.name);
 
 		effects.forEach((effect) -> effect.OnRespawn(instance));
 	}

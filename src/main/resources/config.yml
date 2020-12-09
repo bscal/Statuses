@@ -1,6 +1,9 @@
 # Enable debug mode
 DebugModeEnabled: true
 
+# LogLevel 0 = NORMAL, 1 = INFO, 2 = DEVELOPER
+LogLevel: 2
+
 # Store player statuses data with MYSQL instead of SQLite
 EnableMysql: false
 

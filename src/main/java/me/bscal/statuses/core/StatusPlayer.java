@@ -1,6 +1,7 @@
 package me.bscal.statuses.core;
 
 import me.bscal.logcraft.LogCraft;
+import me.bscal.logcraft.LogLevel;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.statuses.StatusBase;
 import me.bscal.statuses.storage.BukkitSQLAPI;
@@ -96,8 +97,8 @@ public final class StatusPlayer
 			instance.hasStarted = true;
 		}
 
-		if (Statuses.Debug)
-			LogCraft.Log("Adding status to:", player.getName(), instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("Adding status to:", player.getName(), instance.status.name);
 	}
 
 	public void RemoveStatus(final StatusInstance instance)
@@ -123,8 +124,8 @@ public final class StatusPlayer
 		instanceMap.get(instance.status).remove(instance);
 		Statuses.Get().GetStatusMgr().RemoveTriggerEffect(instance);
 
-		if (Statuses.Debug)
-			LogCraft.Log("Removing status from:", player.getName(), instance.status.name);
+		if (Statuses.Logger.IsLevel(LogLevel.DEVELOPER))
+			Statuses.Logger.Log("Removing status from:", player.getName(), instance.status.name);
 
 		instance = null;
 	}

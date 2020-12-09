@@ -3,10 +3,6 @@ package me.bscal.statuses;
 import me.bscal.logcraft.LogCraft;
 import me.bscal.logcraft.LogLevel;
 import me.bscal.statuses.core.StatusManager;
-import me.bscal.statuses.effects.BleedEffect;
-import me.bscal.statuses.effects.FractureEffect;
-import me.bscal.statuses.statuses.BleedStatus;
-import me.bscal.statuses.statuses.FractureStatus;
 import me.bscal.statuses.storage.SQLAPI;
 import me.bscal.statuses.triggers.EntityDamagedTrigger;
 import me.bscal.statuses.triggers.PlayerDamageDoneTrigger;
@@ -14,23 +10,19 @@ import me.bscal.statuses.triggers.PlayerDamageRecievedTrigger;
 import me.bscal.statuses.triggers.StatusTrigger;
 import me.bscal.statuses.utils.SpigotUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.io.IOException;
 
 public class Statuses extends JavaPlugin
 {
+	public static final String SQL_USER_TBL = "user_statuses";
+	public static boolean Debug;
+	public static LogCraft Logger;
+
 	private static Statuses m_singleton;
 
-	public static final String SQL_USER_TBL = "user_statuses";
-
-	public static boolean Debug;
-
-	//private Config m_config;
 	private FileConfiguration m_config;
 
 	private StatusManager m_sm;
@@ -45,8 +37,7 @@ public class Statuses extends JavaPlugin
 
 		m_config = SpigotUtils.CreateConfig(getDataFolder() + File.separator + "config.yml");
 		Debug = m_config.getBoolean("DebugModeEnabled");
-
-		LogCraft.Init(this, LogLevel.IntToLevel(m_config.getInt("LogLevel")));
+		Logger = new LogCraft(this, LogLevel.IntToLevel(m_config.getInt("LogLevel")));
 
 		m_database = new SQLAPI(Debug, m_config.getBoolean("EnableMysql"));
 		m_database.Connect();
@@ -67,10 +58,10 @@ public class Statuses extends JavaPlugin
 		//m_sm.Register(new BleedStatus(), dmgRecByEntTrig);
 		//m_sm.Register(new FractureStatus(), dmgRecTrig);
 
-		LogCraft.Log("StatusManager Loaded. Trigger count:", m_sm.TriggerCount(), "Status Count:", m_sm.StatusCount(),
-				"Effect Count:", m_sm.EffectsCount());
+		Logger.Log("StatusManager Loaded. Trigger count:", m_sm.TriggerCount(), "Status Count:",
+				m_sm.StatusCount(), "Effect Count:", m_sm.EffectsCount());
+
 		m_sm.StartRunnable();
-		LogCraft.Init(this, LogLevel.DEVELOPER);
 	}
 
 	public void onDisable()

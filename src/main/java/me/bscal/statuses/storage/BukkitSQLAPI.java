@@ -50,8 +50,8 @@ public final class BukkitSQLAPI
 					sp.LoadStatus((StatusInstance) new StatusInstance(sp).ToObject(res));
 				}
 
-				if (LogLevel.Is(LogLevel.INFO_ONLY))
-					LogCraft.Log("[ LoadPlayer ]", sp.player.getName());
+				if (Statuses.Logger.IsLevel(LogLevel.INFO_ONLY))
+					Statuses.Logger.Log("[ LoadPlayer ]", sp.player.getName());
 
 				AsyncDelete(table, DBUpdate.DeletePlayer(sp.player));
 			}
@@ -60,8 +60,8 @@ public final class BukkitSQLAPI
 
 	public static void SavePlayer(String table, StatusPlayer sp)
 	{
-		if (LogLevel.Is(LogLevel.INFO_ONLY))
-			LogCraft.Log("[ SavePlayer ]", sp.statuses.size(), sp.player.getName());
+		if (Statuses.Logger.IsLevel(LogLevel.INFO_ONLY))
+			Statuses.Logger.Log("[ SavePlayer ]", sp.statuses.size(), sp.player.getName());
 
 		sp.RemoveAllAndSave(table);
 	}
