@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.statuses.StatusBase;
 import me.bscal.statuses.storage.DBObject;
+import org.bukkit.entity.Player;
 
 public class StatusInstance implements DBObject
 {
@@ -64,6 +65,11 @@ public class StatusInstance implements DBObject
 		this.status = status;
 		this.duration = duration;
 		this.key = key;
+	}
+
+	public Player GetPlayer()
+	{
+		return sPlayer.player;
 	}
 
 	@Override

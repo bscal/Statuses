@@ -14,7 +14,7 @@ public class FractureStatus extends StatusBase
 
 	public FractureStatus()
 	{
-		super("Fracture", StatusGroup.FRACTURE, 30);
+		super("Fracture", StatusGroup.FRACTURE.toString(), 30);
 		triggers.add(Statuses.Get().GetStatusMgr().GetTrigger(EntityDamagedTrigger.class.getSimpleName()));
 		effects.add(new FractureEffect());
 	}

@@ -12,7 +12,7 @@ public class BleedStatus extends StatusBase
 
 	public BleedStatus()
 	{
-		super("Bleed", StatusGroup.BLEEDS, 10);
+		super("Bleed", StatusGroup.BLEEDS.toString(), 10);
 		effects.add(Statuses.Get().GetStatusMgr().GetEffect(BleedEffect.class.getSimpleName()));
 	}
 

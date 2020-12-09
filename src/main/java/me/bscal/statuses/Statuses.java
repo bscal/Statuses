@@ -1,6 +1,5 @@
 package me.bscal.statuses;
 
-import me.DevTec.TheAPI.ConfigAPI.Config;
 import me.bscal.logcraft.LogCraft;
 import me.bscal.logcraft.LogLevel;
 import me.bscal.statuses.core.StatusManager;
@@ -13,20 +12,26 @@ import me.bscal.statuses.triggers.EntityDamagedTrigger;
 import me.bscal.statuses.triggers.PlayerDamageDoneTrigger;
 import me.bscal.statuses.triggers.PlayerDamageRecievedTrigger;
 import me.bscal.statuses.triggers.StatusTrigger;
+import me.bscal.statuses.utils.SpigotUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
 
 public class Statuses extends JavaPlugin
 {
 	private static Statuses m_singleton;
 
-	public static final String SQL_USER_TBL = "status_users";
+	public static final String SQL_USER_TBL = "user_statuses";
 
 	public static boolean Debug;
 
-	private Config m_config;
+	//private Config m_config;
+	private FileConfiguration m_config;
 
 	private StatusManager m_sm;
 
@@ -38,7 +43,7 @@ public class Statuses extends JavaPlugin
 
 		saveDefaultConfig();
 
-		m_config = new Config(getName() + File.separator + "config.yml");
+		m_config = SpigotUtils.CreateConfig(getDataFolder() + File.separator + "config.yml");
 		Debug = m_config.getBoolean("DebugModeEnabled");
 
 		LogCraft.Init(this, LogLevel.IntToLevel(m_config.getInt("LogLevel")));
@@ -55,17 +60,17 @@ public class Statuses extends JavaPlugin
 		StatusTrigger dmgRecTrig = m_sm.RegisterTrigger(new EntityDamagedTrigger());
 
 		// Effects
-		m_sm.RegisterEffect(new BleedEffect());
-		m_sm.RegisterEffect(new FractureEffect());
+		//m_sm.RegisterEffect(new BleedEffect());
+		//m_sm.RegisterEffect(new FractureEffect());
 
 		// Statuses
-		m_sm.Register(new BleedStatus(), dmgRecByEntTrig);
-		m_sm.Register(new FractureStatus(), dmgRecTrig);
+		//m_sm.Register(new BleedStatus(), dmgRecByEntTrig);
+		//m_sm.Register(new FractureStatus(), dmgRecTrig);
 
 		LogCraft.Log("StatusManager Loaded. Trigger count:", m_sm.TriggerCount(), "Status Count:", m_sm.StatusCount(),
 				"Effect Count:", m_sm.EffectsCount());
 		m_sm.StartRunnable();
-
+		LogCraft.Init(this, LogLevel.DEVELOPER);
 	}
 
 	public void onDisable()
@@ -78,7 +83,7 @@ public class Statuses extends JavaPlugin
 		return m_singleton;
 	}
 
-	public Config GetConfigFile()
+	public FileConfiguration GetConfigFile()
 	{
 		return m_config;
 	}

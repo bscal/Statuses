@@ -1,5 +1,4 @@
 main: me.bscal.statuses.Statuses
 name: Statuses
 version: 0.0.1
-depend: [TheAPI]
 api-version: 1.16
