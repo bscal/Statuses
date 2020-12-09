@@ -93,10 +93,6 @@ public final class BukkitSQLAPI
 				Statuses.Get().GetDB().Insert(table, columns);
 			}
 		}.runTaskAsynchronously(Statuses.Get());
-
-		Bukkit.getScheduler().runTaskAsynchronously(Statuses.Get(), () -> {
-			Statuses.Get().GetDB().Insert(table, columns);
-		});
 	}
 
 	public static void AsyncSelect(final String table, final DBSelect columns,
