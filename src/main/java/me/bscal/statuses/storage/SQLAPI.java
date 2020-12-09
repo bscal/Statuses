@@ -52,7 +52,7 @@ public class SQLAPI
 				Log("[ ok ] Connected to database success!");
 
 				stmt = c.prepareStatement(
-						"CREATE TABLE IF NOT EXISTS user_statuses (" + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " + "`status_id` BIGINT NOT NULL, " + "`UUID` VARCHAR(36) NOT NULL, " + "`name` VARCHAR(32) NOT NULL, " + "`key` VARCHAR(64) NOT NULL, " + "`duration` INTEGER NOT NULL, " + "`stacks` TINYINT NOT NULL default 0);");
+						"CREATE TABLE IF NOT EXISTS " + Statuses.SQL_USER_TBL + " (" + "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " + "`status_id` BIGINT NOT NULL, " + "`UUID` VARCHAR(36) NOT NULL, " + "`name` VARCHAR(32) NOT NULL, " + "`key` VARCHAR(64) NOT NULL, " + "`duration` INTEGER NOT NULL, " + "`stacks` TINYINT NOT NULL default 0);");
 				stmt.executeUpdate();
 				stmt.close();
 			}

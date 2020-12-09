@@ -7,6 +7,7 @@ import me.bscal.statuses.core.StatusInstance;
 import me.bscal.statuses.core.StatusPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -84,6 +85,15 @@ public final class BukkitSQLAPI
 
 	public static void AsyncInsert(final String table, final DBKeyValue... columns)
 	{
+		new BukkitRunnable()
+		{
+			@Override
+			public void run()
+			{
+				Statuses.Get().GetDB().Insert(table, columns);
+			}
+		}.runTaskAsynchronously(Statuses.Get());
+
 		Bukkit.getScheduler().runTaskAsynchronously(Statuses.Get(), () -> {
 			Statuses.Get().GetDB().Insert(table, columns);
 		});

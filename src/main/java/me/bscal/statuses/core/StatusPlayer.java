@@ -201,8 +201,6 @@ public final class StatusPlayer
 
 	public void OnTick(final int tick)
 	{
-		if (Statuses.Debug)
-			LogCraft.Log("Updating...", player.getName(), "# of ", statuses.size());
 		for (int i = statuses.size() - 1; i > -1; i--)
 		{
 			statuses.get(i).status.OnTick(tick, statuses.get(i));
