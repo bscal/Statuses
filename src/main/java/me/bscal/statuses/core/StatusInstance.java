@@ -3,14 +3,11 @@ package me.bscal.statuses.core;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.UUID;
 
-import me.bscal.statuses.storage.DBKeyValue;
-import org.bukkit.Bukkit;
-
+import me.bscal.SQLAPI.DBKeyValue;
+import me.bscal.SQLAPI.DBObject;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.statuses.StatusBase;
-import me.bscal.statuses.storage.DBObject;
 import org.bukkit.entity.Player;
 
 public class StatusInstance implements DBObject

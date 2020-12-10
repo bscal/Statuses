@@ -1,7 +1,7 @@
 package me.bscal.statuses.effects;
 
 import me.bscal.statuses.core.StatusInstance;
-import me.bscal.statuses.utils.SpigotUtils;
+import me.bscal.utils.SpigotUtils;
 import org.bukkit.ChatColor;
 
 public class BleedEffect extends TickEffect

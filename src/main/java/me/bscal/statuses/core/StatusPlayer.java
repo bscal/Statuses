@@ -1,10 +1,9 @@
 package me.bscal.statuses.core;
 
-import me.bscal.logcraft.LogCraft;
 import me.bscal.logcraft.LogLevel;
 import me.bscal.statuses.Statuses;
 import me.bscal.statuses.statuses.StatusBase;
-import me.bscal.statuses.storage.BukkitSQLAPI;
+import me.bscal.statuses.storage.StatusStorage;
 import org.bukkit.entity.Player;
 
 import java.text.MessageFormat;
@@ -167,7 +166,7 @@ public final class StatusPlayer
 			if (inst != null && inst.status.isPersistent)
 			{
 				inst = statuses.get(i);
-				BukkitSQLAPI.SaveInstance(inst, table);
+				StatusStorage.SaveInstance(inst, table);
 				RemoveStatus(inst, i);
 			}
 		}
