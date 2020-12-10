@@ -24,7 +24,7 @@ public class StatusStorage
 		Database db = new Database(plugin, config.getString("mysql.host"),
 				config.getString("mysql.port"), config.getString("mysql.database"),
 				config.getString("mysql.username"), config.getString("mysql.password"),
-				config.getString("mysql.user_table"));
+				config.getString("mysql.table"));
 
 		SQLAPI = new BukkitSQLAPI(db, logger, config.getBoolean("MySQLEnabled"));
 		SQLAPI.Connect();

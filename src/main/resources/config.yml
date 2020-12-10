@@ -17,3 +17,4 @@ mysql:
   database: "minecraft"
   username: "root"
   password: "123"
+  table: "user_statuses"
